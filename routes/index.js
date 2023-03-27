@@ -8,4 +8,4 @@ router.use('/post', post);
 router.use('/user', user);
 
 module.exports = router;
-//test용 주석2
+//test용 주석
