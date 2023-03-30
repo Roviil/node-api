@@ -6,5 +6,7 @@ const controller = require('./post.controller');
 router.get('/', controller.posts);
 router.get('/posts:', controller.postsget);
 router.post('/:write', controller.write);
+router.get('/comment', controller.comment);
+router.get('/comment:', controller.commentget);
 
 module.exports = router;

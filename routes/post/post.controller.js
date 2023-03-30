@@ -78,3 +78,33 @@ exports.write = (req, res) => {
     }
   });
 };
+
+//댓글 가져오기
+exports.comment = (req, res)=>{
+  db.query('SELECT * FROM comment', function(err, rows, fields) {
+    if(!err) {
+      res.send(rows); // response send rows
+    } else {
+      console.log('err : ' + err);
+      res.send(err); // response send err
+    }
+  });
+
+}
+
+
+exports.commentget = (req, res) => {
+  const post_id = req.query.post_id;
+  const query = 'SELECT * FROM comment WHERE post_id = ? ORDER BY comment_id DESC;';
+
+   db.query(query, post_id, (error, results, fields) => {
+      if (error) {
+      console.log(error);
+      res.status(500).send('Internal Server Error');
+      } else {
+      res.status(200).json(results);
+      }
+  });
+
+
+}
