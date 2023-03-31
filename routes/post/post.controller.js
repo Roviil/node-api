@@ -1,8 +1,8 @@
 const path = require("path");
 require('dotenv').config({ path: path.join(__dirname, '../.env') });
-const db = require('../../server/db');
 const jwt = require('jsonwebtoken');
 const { verifyToken } = require('../user/auth');
+const db = require('../../server/db');
 
 
 const getDate = (callback) => {
