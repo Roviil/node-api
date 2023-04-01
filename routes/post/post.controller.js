@@ -130,8 +130,8 @@ exports.commentwrite = (req, res) => {
     try {
 
       const student_id = token.student_id; // 사용자 ID 추출
-      const post_id = req.body.post_id;
-
+      const post_id = req.params.post_id;
+      
       getDate((error, comment_date) => {
         if (error) {
           console.error("날짜 가져오기 실패: ", error);
