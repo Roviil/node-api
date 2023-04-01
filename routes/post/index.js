@@ -10,6 +10,7 @@ router.get('/comment', controller.comment);
 router.get('/comment:', controller.commentget);
 router.post('/updatepost', controller.updatePost);
 router.post('/deletepost/:post_id', controller.deletePost);
+router.post('/commentwrite', controller.commentwrite);
 
 
 module.exports = router;
