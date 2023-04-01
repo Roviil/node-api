@@ -41,7 +41,8 @@ exports.verifyToken = (req, res, next) => {
     }
    return res.status(401).json({
      code: 401,
-     message: '유효하지 않은 토큰입니다.'
+     message: '유효하지 않은 토큰입니다.',
+     error: req.decoded
    });
   }
 }
