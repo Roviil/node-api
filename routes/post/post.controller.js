@@ -119,8 +119,49 @@ exports.commentget = (req, res) => {
       res.status(200).json(results);
     }
   });
+}
+
+exports.commentwrite = (req, res) => {
+  verifyToken(req, res, () => {
+    const comment_content = req.body.comment_content;
+    const token = req.decoded// 헤더에서 토큰 추출
 
 
+    try {
+
+      const student_id = token.student_id; // 사용자 ID 추출
+      const post_id = req.body.post_id;
+
+      getDate((error, comment_date) => {
+        if (error) {
+          console.error("날짜 가져오기 실패: ", error);
+          return res.status(500).send("서버 내부 오류");
+        } else {
+          const sql =
+            "INSERT INTO comment (comment_content, student_id, comment_date, post_id) VALUES (?, ?, ?, ?)";
+          const values = [
+            comment_content,
+            student_id,
+            comment_date,
+            post_id,
+          ];
+
+          db.query(sql, values, (error, results) => {
+            if (error) {
+              console.error("댓글 작성 실패: ", error);
+              res.status(500).json({ message: "서버 내부 오류" });
+            } else {
+              console.log("댓글 작성 성공!");
+              res.status(201).json({ message: "댓글이 성공적으로 작성되었습니다." });
+            }
+          });
+        }
+      });
+    } catch (err) {
+      console.error("토큰 검증 실패: ", err);
+      res.status(401).json({ message: "로그인을 해주세요." });
+    }
+  });
 }
 
 exports.updatePost = (req, res) => {
