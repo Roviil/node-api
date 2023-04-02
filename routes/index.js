@@ -9,8 +9,5 @@ router.use('/user', user);
 
 
 module.exports = router;
-//test용 주석123
 
-
-module.exports = router;
-
+//테스트용 주석

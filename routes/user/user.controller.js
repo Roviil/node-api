@@ -1,8 +1,7 @@
-const db = require('../../server/db');
 const path = require("path");
 require('dotenv').config({ path: path.join(__dirname, '../.env') });
 const jwt = require('jsonwebtoken');
-const { verifyToken } = require('../user/auth');
+const db = require('../../server/db');
 
 
 exports.user = (req, res)=>{
@@ -59,38 +58,23 @@ exports.login = (req, res) => {
 }
 
 exports.logout = (req, res) => {
-  const { content } = req.body;
-  if (content !== 'logout') {
-    return res.status(400).json({ message: 'Invalid request' });
-  }
-
-  try {
-    // 쿠키에서 토큰 가져오기
-    const token = req.cookies.token;
-
-    // 토큰이 없으면 이미 로그아웃된 상태
-    if (!token) {
-      return res.status(200).json({ message: 'Already logged out' });
+  const token = req.headers.authorization.split(' ')[1]; // get token from headers
+  jwt.verify(token, process.env.JWT_SECRET, (error, decoded) => {
+    if (error) {
+      console.error(error);
+      res.status(500).send('내부 서버 오류');
+    } else {
+      // Expire token immediately
+      const expiredToken = jwt.sign({
+        student_id: decoded.student_id,
+      }, process.env.JWT_SECRET, {
+        expiresIn: 0,
+        issuer: decoded.student_id,
+      });
+      res.status(200).json({ message: '로그아웃 성공', token: expiredToken });
     }
-
-    // 토큰 만료시간 설정
-    const cookieOptions = {
-      expires: new Date(Date.now()),
-      httpOnly: true
-    };
-
-    // 쿠키에서 토큰 삭제
-    res.cookie('token', '', cookieOptions);
-
-    res.status(200).json({ message: 'Logout successful' });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Server error' });
-  }
+  });
 };
-
-
-
 
 
   exports.signup = (req, res) => {
