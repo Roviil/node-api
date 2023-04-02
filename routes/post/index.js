@@ -391,7 +391,7 @@ router.post('/deletepost/:post_id', controller.deletePost);
  *                   example: 서버 내부 오류
  */
 router.post('/commentwrite/:post_id', controller.commentwrite);
-router.delete('/deletecomment/:comment_id', controller.deletePost);
+router.delete('/deletecomment', controller.deleteComment);
 
 
 module.exports = router;

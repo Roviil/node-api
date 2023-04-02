@@ -166,7 +166,7 @@ exports.commentwrite = (req, res) => {
 
 exports.deleteComment = (req, res) => {
   verifyToken(req, res, () => {
-    const comment_id = req.body.comment_id;
+    const comment_id = req.params.comment_id;
     const token = req.decoded; // 헤더에서 토큰 추출
 
     try {
