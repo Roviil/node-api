@@ -57,6 +57,7 @@ exports.login = (req, res) => {
   });
 }
 
+/*
 exports.logout = (req, res) => {
   const token = req.headers.authorization.split(' ')[1]; // get token from headers
   jwt.verify(token, process.env.JWT_SECRET, (error, decoded) => {
@@ -75,6 +76,7 @@ exports.logout = (req, res) => {
     }
   });
 };
+*/
 
 
   exports.signup = (req, res) => {
