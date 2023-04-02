@@ -175,15 +175,17 @@ exports.deleteComment = (req, res) => {
       const sql = "DELETE FROM comment WHERE comment_id=? AND student_id=?"; // SQL 쿼리
       const values = [comment_id, student_id]; // SQL 쿼리 값
 
-      console.log(comment_id, student_id);
-
       db.query(sql, values, (error, results) => {
         if (error) {
           console.error("댓글 삭제 실패: ", error);
           res.status(500).json({ message: "서버 내부 오류" });
-        } else {
+        } else if (!error){
           console.log("댓글 삭제 성공!");
           res.status(200).json({ message: "댓글이 삭제되었습니다." });
+        }
+        else{
+          console.log("댓글 삭제 권한 없음");
+          res.status(300).json({ message: "권한이 없습니다." });
         }
       });
     } catch (err) {
