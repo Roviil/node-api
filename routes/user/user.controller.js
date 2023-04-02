@@ -80,10 +80,10 @@ exports.logout = (req, res) => {
 
 
   exports.signup = (req, res) => {
-    const { student_id, password, name, email } = req.body;
-     const query = 'INSERT INTO user (student_id, password, name, email) VALUES (?, ?, ?, ?)';
+    const { student_id, password, name, email, grade } = req.body;
+     const query = 'INSERT INTO user (student_id, password, name, email, grade) VALUES (?, ?, ?, ?, ?)';
 
-     db.query(query, [student_id, password, name, email], (error, results, fields) => {
+     db.query(query, [student_id, password, name, email, grade], (error, results, fields) => {
        if (error) {
          console.error(error);
          res.status(500).send('내부 서버 오류');
