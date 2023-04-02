@@ -166,7 +166,7 @@ exports.commentwrite = (req, res) => {
 
 exports.deleteComment = (req, res) => {
   verifyToken(req, res, () => {
-    const comment_id = req.params.comment_id;
+    const comment_id = req.query.comment_id;
     const token = req.decoded; // 헤더에서 토큰 추출
 
     try {
@@ -174,6 +174,8 @@ exports.deleteComment = (req, res) => {
 
       const sql = "DELETE FROM comment WHERE comment_id=? AND student_id=?"; // SQL 쿼리
       const values = [comment_id, student_id]; // SQL 쿼리 값
+
+      console.log(comment_id, student_id);
 
       db.query(sql, values, (error, results) => {
         if (error) {
