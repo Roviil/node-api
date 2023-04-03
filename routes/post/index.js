@@ -391,6 +391,63 @@ router.post('/deletepost/:post_id', controller.deletePost);
  *                   example: 서버 내부 오류
  */
 router.post('/commentwrite/:post_id', controller.commentwrite);
+/**
+ * @swagger
+ * /post/deletecomment:
+ *   delete:
+ *     summary: 댓글 삭제
+ *     tags:
+ *       - Post
+ *     parameters:
+ *       - in: path
+ *         name: comment_id
+ *         description: comment_id을 가져와 해당 댓글 삭제
+ *         required: true
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *     responses:
+ *       201:
+ *         description: The comment was successfully written.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: 댓글 삭제 성공
+ *       400:
+ *         description: The request was invalid.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: 잘못된 요청입니다.
+ *       401:
+ *         description: The request requires authentication.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: 로그인을 해주세요.
+ *       500:
+ *         description: An error occurred on the server side.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: 서버 내부 오류
+ */
 router.delete('/deletecomment', controller.deleteComment);
 
 
