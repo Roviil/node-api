@@ -81,7 +81,7 @@ exports.logout = (req, res) => {
 
   exports.signup = (req, res) => {
     const { student_id, password, name, email, grade } = req.body;
-     const query = 'INSERT INTO user (student_id, password, name, email, grade) VALUES (?, ?, ?, ?, ?)';
+     const query = 'INSERT INTO user (student_id, password, name, email, grade, permission) VALUES (?, ?, ?, ?, ?, 1)';
 
      db.query(query, [student_id, password, name, email, grade], (error, results, fields) => {
        if (error) {
