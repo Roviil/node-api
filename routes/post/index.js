@@ -448,7 +448,6 @@ router.post('/commentwrite/:post_id', controller.commentwrite);
  *                   type: string
  *                   example: 서버 내부 오류
  */
-router.delete('/deletecomment', controller.deleteComment);
 router.post('/deletecomment/:comment_id', controller.deleteComment);
 
 module.exports = router;
