@@ -449,5 +449,5 @@ router.post('/commentwrite/:post_id', controller.commentwrite);
  *                   example: 서버 내부 오류
  */
 router.post('/deletecomment/:comment_id', controller.deleteComment);
-
+router.get('/commentsAll', controller.getCommentCount)
 module.exports = router;
