@@ -1,6 +1,7 @@
 const path = require("path");
 require('dotenv').config({ path: path.join(__dirname, '../.env') });
 const jwt = require('jsonwebtoken');
+const { verifyToken } = require('./auth');
 const db = require('../../server/db');
 
 
@@ -29,6 +30,24 @@ exports.info = (req, res) => {
         }
     });
 
+}
+
+exports.infotoken = (req, res) => {
+  verifyToken(req, res, () => {
+    const token = req.decoded// 헤더에서 토큰 추출
+    const student_id = token.student_id;
+ 
+    const query = 'SELECT * FROM user WHERE student_id = ?';
+
+    db.query(query, student_id, (error, results, fields) => {
+        if (error) {
+        console.log(error);
+        res.status(500).send('Internal Server Error');
+        } else {
+        res.status(201).json(results);
+        }
+    });
+  })
 }
 
 exports.login = (req, res) => {

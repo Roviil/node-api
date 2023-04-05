@@ -32,7 +32,7 @@ exports.posts = (req, res) => {
 
 exports.postsget = (req, res) => {
   const board_id = req.query.board_id;
-  const query = 'SELECT * FROM post WHERE board_id = ? ORDER BY post_id DESC;';
+  const query = 'SELECT * FROM post WHERE board_id = ? AND available = 1 ORDER BY post_id DESC;';
 
   db.query(query, board_id, (error, results, fields) => {
     if (error) {
@@ -64,7 +64,7 @@ exports.write = (req, res) => {
           return res.status(500).send("서버 내부 오류");
         } else {
           const sql =
-            "INSERT INTO post (post_title, post_content, student_id, post_date, post_file, board_id) VALUES (?, ?, ?, ?, ?, ?)";
+            "INSERT INTO post (post_title, post_content, student_id, post_date, post_file, board_id, available) VALUES (?, ?, ?, ?, ?, ?, 1)";
           const values = [
             post_title,
             post_content,
@@ -105,6 +105,25 @@ exports.comment = (req, res) => {
   });
 
 }
+
+//댓글 갯수 카운트
+exports.getCommentCount = (req, res) => {
+  db.query(
+    `SELECT post.post_id, COUNT(comment.comment_id) AS comment_count
+     FROM post
+     LEFT JOIN comment ON post.post_id = comment.post_id
+     WHERE comment.available = 1
+     GROUP BY post.post_id`,
+    (err, rows) => {
+      if (err) {
+        console.log('Error getting comment count: ' + err);
+        res.status(500).json({ error: 'Failed to get comment count' });
+      } else {
+        res.status(200).json(rows);
+      }
+    }
+  );
+};
 
 
 exports.commentget = (req, res) => {
@@ -289,8 +308,8 @@ exports.deletePost = (req, res) => {
         if (student_id != token.student_id) {
           res.status(403).json({ error: '수정 권한이 없습니다.'});
         } else {
-          const sql = "UPDATE post SET board_id = ? WHERE post_id = ?";
-          const values = [99, post_id];
+          const sql = "UPDATE post SET available = ? WHERE post_id = ?";
+          const values = [0, post_id];
 
           db.query(sql, values, (error, results) => {
             if (error) {
