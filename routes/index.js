@@ -3,6 +3,7 @@ const router = express.Router();
 
 const post = require('./post/index');
 const user = require('./user/index');
+const gScore= require('./gScore/index');
 
 /**
  * @swagger
@@ -20,6 +21,8 @@ router.use('/post', post);
  *   description: 유저 추가 수정 삭제 조회
  */
 router.use('/user', user);
+
+router.use('/gScore',gScore);
 
 module.exports = router;
 
