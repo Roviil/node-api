@@ -5,7 +5,6 @@ const { verifyToken } = require('../user/auth');
 const db = require('../../server/db');
 
 
-
 const getDate = (callback) => {
   const sql = 'SELECT NOW()'; // SQL 쿼리
   db.query(sql, (error, results, fields) => {
@@ -19,68 +18,8 @@ const getDate = (callback) => {
 };
 
 
-/*
-exports.testapi = (req,res) =>{
-  verifyToken = (req, res) => {
-    const token = req.decoded
-    try {
-      
-      const student_id = token.student_id;
-      
-      db.query(`SELECT permission FROM user WHERE student_id = ${student_id}`, function (err, rows, fields) {
-        if (!err) {
-          const permission = rows[0].permission;
-          if (permission === 2) {
-            db.query('SELECT * FROM gs_post', function (err, rows, fields) {
-              if (!err) {
-                res.send(rows);
-              } else {
-                console.log('err : ' + err);
-                res.send(err);
-              }
-            });
-          } else {
-            const query = `SELECT * FROM gs_post WHERE gsuser_id = ${student_id}`;
 
-            db.query(query, (error, results, fields) => {
-              if (error) {
-                console.log(error);
-                res.status(500).send('Internal Server Error');
-              } else {
-                res.status(200).json(results);
-              }
-            });
-          }
-        } else {
-          console.log('err : ' + err);
-          res.send(err);
-        }
-      });
-    
-    }//try
-    
-    // 인증 실패 
-    catch(error) {
-      if (error.name === 'TokenExpireError') {
-        return res.status(419).json({
-          code: 419,
-          message: '토큰이 만료되었습니다.'
-        });
-      }
-     return res.status(401).json({
-       code: 401,
-       message: '유효하지 않은 토큰입니다.'
-     });
-    }
-  }
-
-}
-*/
-
-
-
-
-
+//모든 게시글
 exports.post = (req, res)=>{
   db.query('SELECT * FROM gs_post', function(err, rows, fields) {
     if(!err) {
@@ -94,6 +33,7 @@ exports.post = (req, res)=>{
 
 
 
+//졸업인증제 항목정보
 exports.gsinfo = (req, res)=>{
   db.query('SELECT * FROM gs_info', function(err, rows, fields) {
     if(!err) {
@@ -107,42 +47,62 @@ exports.gsinfo = (req, res)=>{
 
 
 
+//사용자 정보 리턴
+exports.getUserInfo = (req, res) => {
+  verifyToken(req, res, () => {
+    const token = req.decoded 
 
-/*
-exports.filter = (req, res) => {
+    try {
+      const student_id = token.student_id 
+
+      db.query(`SELECT * FROM user WHERE student_id = ${student_id}`, function (err, rows, fields) {
+        if (!err) {
+          res.status(200).json(rows[0])
+        } else {
+          console.log('Error: ' + err)
+          res.status(500).json({ message: '서버 내부 오류' })
+        }
+      })
+
+    } catch (err) {
+      console.error('토큰 검증 실패: ', err)
+      res.status(401).json({ message: '토큰이 유효하지 않습니다.' })
+    }
+  })
+}
+
+
+
+//권한에 따른 작성글 로드
+exports.getPosts = (req, res) => {
   verifyToken(req, res, () => {
     const token = req.decoded
 
     try {
       const student_id = token.student_id; 
 
-      db.query(`SELECT permission FROM user WHERE student_id = ${student_id}`, function (err, rows, fields) {
+      db.query(`SELECT permission FROM user WHERE student_id = ${student_id}`, function (err, row, fields) {
         if (!err) {
-          const permission = rows[0].permission;
+          const permission = row[0].permission;
           if (permission === 2) {
             db.query('SELECT * FROM gs_post', function (err, rows, fields) {
               if (!err) {
-                res.send(rows);
+                res.status(200).json(rows);
               } else {
                 console.log('err : ' + err);
-                res.send(err);
+                res.status(500).json({ message: '서버 내부 오류' });
               }
             });
           } else {
-            const query = `SELECT * FROM gs_post WHERE gsuser_id = ${student_id}`;
-
-            db.query(query, (error, results, fields) => {
-              if (error) {
-                console.log(error);
-                res.status(500).send('Internal Server Error');
-              } else {
+            db.query(`SELECT * FROM gs_post WHERE gsuser_id = ${student_id}`, (err, results, fields) => {
+              if (!err) {
                 res.status(200).json(results);
+              } else {
+                console.log('err : ' + err);
+                res.status(500).json({ message: '서버 내부 오류' });
               }
             });
           }
-        } else {
-          console.log('err : ' + err);
-          res.send(err);
         }
       });
     } catch (err) {
@@ -151,8 +111,10 @@ exports.filter = (req, res) => {
     }
   });
 };
-*/
 
+
+
+//신청글 작성
 exports.write = (req, res) => {
   verifyToken(req, res, () => {
     const category = req.body.gspost_category;
@@ -166,7 +128,6 @@ exports.write = (req, res) => {
     const file = null;
 
     const token = req.decoded// 헤더에서 토큰 추출
-
 
     try {
 
@@ -199,6 +160,5 @@ exports.write = (req, res) => {
       res.status(401).json({ message: "토큰이 유효하지 않습니다." });
     }
   });
-
 }
 

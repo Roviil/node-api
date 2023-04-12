@@ -4,8 +4,9 @@ const controller = require('./gScore.controller');
 
 router.get('/',controller.post);
 router.get('/info',controller.gsinfo);
+router.get('/user',controller.getUserInfo);
+router.get('/posts',controller.getPosts);
+
 router.post('/write',controller.write);
-//router.get('/filter',controller.filter);
-//router.get('/testapi',controller.testapi);
 
 module.exports = router;
