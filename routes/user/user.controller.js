@@ -111,3 +111,22 @@ exports.logout = (req, res) => {
        }
    });
  };
+
+ exports.userupdate = (req, res) => {
+  verifyToken(req, res, () => {
+    const token = req.decoded// 헤더에서 토큰 추출
+    const student_id = token.student_id;
+    const password = req.body.password;
+ 
+    const query = 'UPDATE user SET password = ? WHERE student_id = ?';
+
+    db.query(query, [password, student_id], (error, results, fields) => {
+        if (error) {
+        console.log(error);
+        res.status(500).send('서버 내부 오류');
+        } else {
+        res.status(201).json({message: "비밀번호 변경 성공!"});
+        }
+    });
+  })
+ }

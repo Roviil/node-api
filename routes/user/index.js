@@ -179,4 +179,5 @@ router.post('/login', controller.login);
 router.post('/signup', controller.signup);
 router.get('/auth', auth.verifyToken);
 router.get('/student', controller.infotoken);
+router.put('/password', controller.userupdate);
 module.exports = router;
