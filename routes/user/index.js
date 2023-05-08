@@ -180,4 +180,6 @@ router.post('/signup', controller.signup);
 router.get('/auth', auth.verifyToken);
 router.get('/student', controller.infotoken);
 router.put('/password', controller.userupdate);
+router.post('/upload', controller.upload);
+router.get('/loding', controller.loding);
 module.exports = router;

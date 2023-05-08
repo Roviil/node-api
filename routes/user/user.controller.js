@@ -130,3 +130,55 @@ exports.logout = (req, res) => {
     });
   })
  }
+
+ exports.upload = (req, res) => {
+  const multer = require('multer');
+  const storage = multer.diskStorage({
+    destination: function(req, file, cb) {
+      cb(null, 'routes/image/'); // 파일 저장 경로
+    },
+    filename: function(req, file, cb) {
+      cb(null, file.originalname); // 파일 이름 설정
+    }
+  });
+ 
+  const upload = multer({ storage: storage }).single('image');
+
+  try {
+    upload(req, res, function(err) {
+      if (err instanceof multer.MulterError) {
+        // 파일 업로드 중 에러 발생시
+        console.log(err);
+        res.status(500).send('파일 업로드 중 에러가 발생하였습니다.');
+      } else if (err) {
+        // 그 외 에러 발생시
+        console.log(err);
+        res.status(500).send('서버 내부 오류');
+      } else {
+        // 정상적으로 파일 업로드 완료시
+        console.log(req.file);
+        res.status(201).send('파일 업로드가 완료되었습니다.');
+      }
+    });
+  } catch (err) {
+    console.log(err);
+    res.status(500).send('서버 내부 오류');
+  }
+}
+
+exports.loding = (req, res) => {
+  const fileId = req.query.image;
+  const fs = require('fs');
+  const filePath = path.join(__dirname, '../image/', `${fileId}`); // 파일 경로
+  try {
+    if (fs.existsSync(filePath)) { // 파일이 존재하는지 확인
+      res.sendFile(filePath); // 파일 전송
+    } else {
+      console.log(filePath);
+      res.status(404).send('File not found'); // 파일이 존재하지 않으면 404 에러 전송
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Server error'); // 서버 에러 발생시 500 에러 전송
+  }
+}
