@@ -451,4 +451,5 @@ router.post('/commentwrite/:post_id', controller.commentwrite);
 router.post('/deletecomment/:comment_id', controller.deleteComment);
 router.get('/commentsAll', controller.getCommentCount)
 router.post('/updatecomment/:comment_id', controller.updateComment);
+router.get('/mypost', controller.mypost);
 module.exports = router;

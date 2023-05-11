@@ -369,3 +369,22 @@ exports.deletePost = (req, res) => {
     });
   });
 };
+
+exports.mypost = (req, res) => {
+  verifyToken(req, res, () => {
+    
+    const token = req.decoded; // 헤더에서 토큰 추출
+    const student_id = token.student_id;
+    
+    const selectSql = "SELECT * FROM post WHERE student_id = ? ORDER BY post_id DESC;";
+  
+  db.query(selectSql, student_id, function (err, rows, fields) {
+    if (!err) {
+      res.status(201).json(rows); // response send rows
+    } else {
+      console.log('err : ' + err);
+      res.status(400).json(err); // response send err
+    }
+  });
+});
+}
