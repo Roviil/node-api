@@ -167,7 +167,7 @@ exports.write = (req, res) => {
   });
 }
 
-//파일 서버, db 업로드
+// 파일 서버, db 업로드
 exports.upload = (req, res) => {
   const multer = require('multer');
   const path = require('path'); 
