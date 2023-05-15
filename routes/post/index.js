@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const controller = require('./post.controller');
 
-/* GET users listing. */
+/* GET users listing. * test/
 
 /**
  * @swagger
