@@ -1,6 +1,6 @@
 const swaggerUi = require("swagger-ui-express")
 const swaggereJsdoc = require("swagger-jsdoc")
-//테스트
+
 const options = {
   swaggerDefinition: {
     openapi: "3.0.0",
