@@ -5,6 +5,7 @@ const { verifyToken } = require('./auth');
 const db = require('../../server/db');
 const nodemailer = require('nodemailer');
 const randomstring = require('randomstring'); // randomstring 모듈 설치 필요, "npm install randomstring" 하면됨
+const bcrypt = require('bcrypt')
 
 exports.user = (req, res)=>{
         db.query('SELECT * FROM user', function(err, rows, fields) {
@@ -54,15 +55,17 @@ exports.infotoken = (req, res) => {
 exports.login = (req, res) => {
   const student_id = req.query.student_id;
   const password = req.query.password;
+  
   const query = "SELECT password FROM user WHERE student_id = ?";
   db.query(query, student_id, (error, results, fields) => {
-      
+    const encodedPassword = bcrypt.compareSync(password, results[0].password);
+    console.log(encodedPassword);
     if (error) {
       console.error(error);
       res.status(500).send('내부 서버 오류');
     } else if (results.length === 0) {
       res.status(401).send('사용자를 찾을 수 없음');
-    } else if (results[0].password === password) {
+    } else if (encodedPassword) {
       // JWT 토큰 생성
       const token = jwt.sign({
         student_id
@@ -136,9 +139,10 @@ exports.logout = (req, res) => {
 
            if (_verificationCode === savedVerificationCode) {
              const { student_id, password, name, email, grade } = req.body;
+             const encryptedPassowrd = bcrypt.hashSync(password, 10);
              const query = 'INSERT INTO user (student_id, password, name, email, grade, permission) VALUES (?, ?, ?, ?, ?, 1)';
 
-             db.query(query, [student_id, password, name, email, grade], (error, results, fields) => {
+             db.query(query, [student_id, encryptedPassowrd, name, email, grade], (error, results, fields) => {
                if (error) {
                  console.error(error);
                  res.status(500).send('내부 서버 오류');
