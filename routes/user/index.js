@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const controller = require('./user.controller');
 const auth = require('./auth')
-
+//test
 
 /**
  * @swagger
