@@ -3,7 +3,7 @@ require('dotenv').config({ path: path.join(__dirname, '../.env') });
 const jwt = require('jsonwebtoken');
 const { verifyToken } = require('./auth');
 const db = require('../../server/db');
-
+//test용 주석1
 
 exports.user = (req, res)=>{
         db.query('SELECT * FROM user', function(err, rows, fields) {
