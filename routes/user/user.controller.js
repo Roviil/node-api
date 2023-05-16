@@ -4,7 +4,7 @@ const jwt = require('jsonwebtoken');
 const { verifyToken } = require('./auth');
 const db = require('../../server/db');
 const nodemailer = require('nodemailer');
-const randomstring = require('randomstring'); // randomstring 모듈 설치 필요, "npm install randomstring" 하면됨
+const randomstring = require('randomstring');
 const bcrypt = require('bcrypt')
 
 exports.user = (req, res)=>{
