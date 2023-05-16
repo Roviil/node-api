@@ -4,7 +4,6 @@ const router = express.Router();
 const post = require('./post/index');
 const user = require('./user/index');
 const gScore= require('./gScore/index');
-//테스트하주석
 
 /**
  * @swagger
