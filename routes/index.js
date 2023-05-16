@@ -4,7 +4,7 @@ const router = express.Router();
 const post = require('./post/index');
 const user = require('./user/index');
 const gScore= require('./gScore/index');
-//test
+//test1tetsdtsdt
 /**
  * @swagger
  * tags:
