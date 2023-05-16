@@ -3,9 +3,11 @@ require('dotenv').config({ path: path.join(__dirname, '../.env') });
 const jwt = require('jsonwebtoken');
 const { verifyToken } = require('./auth');
 const db = require('../../server/db');
+
 const nodemailer = require('nodemailer');
 const randomstring = require('randomstring');
 const bcrypt = require('bcrypt')
+//아무튼 테스트 성공임
 
 exports.user = (req, res)=>{
         db.query('SELECT * FROM user', function(err, rows, fields) {
