@@ -338,7 +338,14 @@ exports.deletePost = (req, res) => {
     const token = req.decoded; // 헤더에서 토큰 추출
     const selectSql = "SELECT student_id FROM post WHERE post_id = ?";
     const selectValues = [post_id];
-
+    const sql = 'SELECT * FROM user WHERE student_id = ?';
+    var a;
+    db.query(sql, token.student_id, (selectError, selectResult) => {
+      a = selectResult[0].permission;
+      console.log(a)
+      
+    });
+    
     db.query(selectSql, selectValues, (selectError, selectResult) => {
       if (selectError) {
         console.error(selectError);
@@ -347,12 +354,10 @@ exports.deletePost = (req, res) => {
         res.status(404).json({ error: '글을 찾을 수 없습니다.' });
       } else {
         const student_id = selectResult[0].student_id; // 사용자 ID 추출
-        if (student_id != token.student_id) {
-          res.status(403).json({ error: '수정 권한이 없습니다.'});
-        } else {
+        if (student_id == token.student_id || a == 2)  {
+          
           const sql = "UPDATE post SET available = ? WHERE post_id = ?";
           const values = [0, post_id];
-
           db.query(sql, values, (error, results) => {
             if (error) {
               console.error("게시물 삭제 실패: ", error);
@@ -364,6 +369,9 @@ exports.deletePost = (req, res) => {
               res.status(200).json({ message: "게시물이 성공적으로 삭제되었습니다." });
             }
           });
+        } else {
+          res.status(403).json({ error: '수정 권한이 없습니다.'});
+          
         }
       }
     });

@@ -158,6 +158,23 @@ exports.logout = (req, res) => {
              res.status(401).send('인증번호가 일치하지 않습니다.');
            }
          };
+         exports.adminsignup = (req, res) => {
+
+             const { student_id, password, name, email } = req.body;
+             const encryptedPassowrd = bcrypt.hashSync(password, 10);
+             const query = 'INSERT INTO user (student_id, password, name, email, grade, permission) VALUES (?, ?, ?, ?, 99, 3)';
+
+             db.query(query, [student_id, encryptedPassowrd, name, email], (error, results, fields) => {
+               if (error) {
+                 console.error(error);
+                 res.status(500).send('내부 서버 오류');
+               } else {
+                 // 회원가입이 성공한 경우, 응답을 보내거나 다른 처리를 수행
+                 res.status(200).send('회원가입이 완료되었습니다.');
+               }
+             });
+           
+         };
 
 
  exports.userupdate = (req, res) => {
