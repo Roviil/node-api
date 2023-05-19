@@ -384,7 +384,7 @@ exports.mypost = (req, res) => {
     const token = req.decoded; // 헤더에서 토큰 추출
     const student_id = token.student_id;
     
-    const selectSql = "SELECT * FROM post WHERE student_id = ? ORDER BY post_id DESC;";
+    const selectSql = "SELECT * FROM post WHERE student_id = ? AND available = 1 ORDER BY post_id DESC;";
   
   db.query(selectSql, student_id, function (err, rows, fields) {
     if (!err) {
