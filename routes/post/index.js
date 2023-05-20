@@ -453,4 +453,5 @@ router.get('/commentsAll', controller.getCommentCount)
 router.post('/updatecomment/:comment_id', controller.updateComment);
 router.get('/mypost', controller.mypost);
 router.post('/introduction', controller.introduction_update);
+router.get('/board', controller.board);
 module.exports = router;
