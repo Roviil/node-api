@@ -183,5 +183,6 @@ router.get('/student', controller.infotoken);
 router.put('/password', controller.userupdate);
 router.post('/upload', controller.upload);
 router.get('/loding', controller.loding);
+router.post('/sendverificationemail', controller.sendVerificationEmail)
 router.post('/adminsignup', controller.adminsignup);
 module.exports = router;
