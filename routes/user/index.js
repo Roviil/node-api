@@ -3,10 +3,7 @@ const router = express.Router();
 const controller = require('./user.controller');
 const auth = require('./auth')
 const subject= require('./required');
-<<<<<<< HEAD
 
-=======
->>>>>>> 2c7008acc03e932405d98fe157b53dd04dd9aa31
 //test
 //박효영 test22
 
@@ -195,8 +192,5 @@ router.get("/required", subject.required); // 이수 과목
 router.get("/required/subject", subject.re_subject); // 이수 과목 subject 테이블 정보 불러오기
 router.post("/required/add", subject.add);
 router.delete("/required/delete", subject.delete);
-<<<<<<< HEAD
 
-=======
->>>>>>> 2c7008acc03e932405d98fe157b53dd04dd9aa31
 module.exports = router;

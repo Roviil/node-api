@@ -146,7 +146,4 @@ exports.modify = (req, res) => {
     }
   });
 };
-<<<<<<< HEAD
 
-=======
->>>>>>> 2c7008acc03e932405d98fe157b53dd04dd9aa31
