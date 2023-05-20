@@ -16,7 +16,7 @@ exports.required= (req, res)=>{
 exports.re_subject= (req, res)=>{
   const student_id = req.query.student_id;
   const sqlQuery = 'SELECT * FROM required_subject WHERE student_id = ?';
-
+  
   db.query(sqlQuery, [student_id], function(err, rows, fields) {
     if (!err) {
       if (rows.length > 0) {
