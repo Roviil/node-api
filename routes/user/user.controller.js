@@ -151,11 +151,11 @@ exports.logout = (req, res) => {
             const savedVerificationCode = verificationCode;
 
            if (_verificationCode === savedVerificationCode) {
-             const { student_id, password, name, email, grade } = req.body;
+             const { student_id, password, name, email, grade, fcm_token } = req.body;
              const encryptedPassowrd = bcrypt.hashSync(password, 10);
-             const query = 'INSERT INTO user (student_id, password, name, email, grade, permission) VALUES (?, ?, ?, ?, ?, 1)';
+             const query = 'INSERT INTO user (student_id, password, name, email, grade, permission, fcm_token) VALUES (?, ?, ?, ?, ?, 1, ?)';
 
-             db.query(query, [student_id, encryptedPassowrd, name, email, grade], (error, results, fields) => {
+             db.query(query, [student_id, encryptedPassowrd, name, email, grade, fcm_token], (error, results, fields) => {
                if (error) {
                  console.error(error);
                  res.status(500).send('내부 서버 오류');
@@ -173,9 +173,9 @@ exports.logout = (req, res) => {
 
              const { student_id, password, name, email } = req.body;
              const encryptedPassowrd = bcrypt.hashSync(password, 10);
-             const query = 'INSERT INTO user (student_id, password, name, email, grade, permission) VALUES (?, ?, ?, ?, 99, 3)';
+             const query = 'INSERT INTO user (student_id, password, name, email, grade, permission, fcm_token) VALUES (?, ?, ?, ?, 99, 3, ?)';
 
-             db.query(query, [student_id, encryptedPassowrd, name, email], (error, results, fields) => {
+             db.query(query, [student_id, encryptedPassowrd, name, email, fcm_token], (error, results, fields) => {
                if (error) {
                  console.error(error);
                  res.status(500).send('내부 서버 오류');
