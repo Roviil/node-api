@@ -384,7 +384,7 @@ exports.mypost = (req, res) => {
     const token = req.decoded; // 헤더에서 토큰 추출
     const student_id = token.student_id;
     
-    const selectSql = "SELECT * FROM post WHERE student_id = ? AND available = 1 ORDER BY post_id DESC;";
+    const selectSql = "SELECT * FROM post WHERE student_id = ? AND available = 1 ORDER BY post_id DESC";
   
   db.query(selectSql, student_id, function (err, rows, fields) {
     if (!err) {
@@ -396,3 +396,31 @@ exports.mypost = (req, res) => {
   });
 });
 }
+
+exports.introduction_update = (req, res) => {
+  verifyToken(req, res, () => {
+    const introduction = req.body.introduction;
+    const token = req.decoded; // 헤더에서 토큰 추출
+
+    try {
+      const student_id = token.student_id; // 삭제버튼 누른 사용자 ID 추출
+      const sql = "UPDATE user SET introduction=? WHERE student_id=?"; // SQL 쿼리
+      const values = [introduction, student_id]; // SQL 쿼리 값
+      // 댓글 내용이 비어있는 경우
+        db.query(sql, values, (error, results) => {
+          if (error) {
+            console.error("자기소개 수정 실패: ", error);
+            res.status(500).json({ message: "서버 내부 오류" });
+          } 
+          else{
+            console.log("댓글 삭제 성공!");
+            res.status(200).json({ message: "자기소개 수정되었습니다." });
+          }
+        });
+
+    } catch (err) {
+      console.error("토큰 검증 실패: ", err);
+      res.status(401).json({ message: "토큰이 유효하지 않습니다." });
+    }
+  });
+};
