@@ -424,3 +424,17 @@ exports.introduction_update = (req, res) => {
     }
   });
 };
+
+exports.board = (req, res) => {
+  const board_id = req.query.board_id;
+  db.query('SELECT * FROM board WHERE board_id = ?', [board_id] ,function (err, rows, fields) {
+    if (!err) {
+      console.log(rows)
+      res.status(201).json({rows}); // response send rows
+    } else {
+      console.log('err : ' + err);
+      res.send(err); // response send err
+    }
+  });
+
+}
