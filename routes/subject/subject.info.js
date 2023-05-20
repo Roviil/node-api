@@ -153,4 +153,8 @@ exports.modify = (req, res) => {
       res.send(err);
     }
   });
+<<<<<<< HEAD
 };
+=======
+};
+>>>>>>> 2c7008acc03e932405d98fe157b53dd04dd9aa31

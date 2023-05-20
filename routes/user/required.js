@@ -16,7 +16,11 @@ exports.required= (req, res)=>{
 exports.re_subject= (req, res)=>{
   const student_id = req.query.student_id;
   const sqlQuery = 'SELECT * FROM required_subject WHERE student_id = ?';
+<<<<<<< HEAD
   
+=======
+
+>>>>>>> 2c7008acc03e932405d98fe157b53dd04dd9aa31
   db.query(sqlQuery, [student_id], function(err, rows, fields) {
     if (!err) {
       if (rows.length > 0) {
@@ -165,4 +169,8 @@ exports.delete = (req, res) => {
       }
     });
   });
+<<<<<<< HEAD
 };
+=======
+};
+>>>>>>> 2c7008acc03e932405d98fe157b53dd04dd9aa31
