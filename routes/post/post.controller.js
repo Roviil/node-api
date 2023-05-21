@@ -104,11 +104,9 @@ exports.write = (req, res) => {
             } else {
               console.log("게시물 작성 성공!");
 
-              // 푸시 알림 보내기
-              const message = "새로운 공지가 등록되었습니다.";
-
               if (board_id === 3) {
                 // 전체 사용자에게 알림 전송
+                const message = "전체 공지가 등록되었습니다.";
                 db.query('SELECT fcm_token FROM user', (error, results) => {
                   if (error) {
                     console.error("FCM 토큰 가져오기 실패: ", error);
@@ -119,6 +117,7 @@ exports.write = (req, res) => {
                 });
               } else if(4 < board_id && board_id < 9) {
                 // 특정 grade 사용자에게 알림 전송
+                const message = "학년별 공지가 등록되었습니다.";
                 const grade = board_id - 4;
                 db.query('SELECT fcm_token FROM user WHERE grade = ?', [grade], (error, results) => {
                   if (error) {
