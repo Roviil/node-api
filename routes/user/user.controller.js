@@ -30,7 +30,7 @@ exports.info = (req, res) => {
         console.log(error);
         res.status(500).send('Internal Server Error');
         } else {
-        res.json(results);
+        res.status(201).json(results);
         }
     });
 
