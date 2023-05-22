@@ -4,6 +4,8 @@ const router = express.Router();
 const post = require('./post/index');
 const user = require('./user/index');
 const gScore= require('./gScore/index');
+const prof= require('./prof/index');
+const subject= require('./subject/index');
 
 /**
  * @swagger
@@ -23,6 +25,10 @@ router.use('/post', post);
 router.use('/user', user);
 
 router.use('/gScore',gScore);
+
+router.use('/prof',prof);
+
+router.use('/subject',subject);
 
 module.exports = router;
 

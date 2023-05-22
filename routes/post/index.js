@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const controller = require('./post.controller');
 
-/* GET users listing. */
+/* GET users listing. *d/
 
 /**
  * @swagger
@@ -452,4 +452,6 @@ router.post('/deletecomment/:comment_id', controller.deleteComment);
 router.get('/commentsAll', controller.getCommentCount)
 router.post('/updatecomment/:comment_id', controller.updateComment);
 router.get('/mypost', controller.mypost);
+router.post('/introduction', controller.introduction_update);
+router.get('/board', controller.board);
 module.exports = router;
