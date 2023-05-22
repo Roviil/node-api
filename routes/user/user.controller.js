@@ -80,7 +80,7 @@ exports.login = (req, res) => {
           const token = jwt.sign({
             student_id
           }, process.env.JWT_SECRET, {
-            expiresIn: '1h',
+            expiresIn: '365d',
             issuer: student_id
           });
           res.status(200).json({ message: '로그인 성공', token: token });
