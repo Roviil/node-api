@@ -219,7 +219,7 @@ exports.commentwrite = (req, res) => {
               console.error("댓글 작성 실패: ", error);
               res.status(500).json({ message: "서버 내부 오류" });
             } else {
-              const c_message = "새로운 댓글이 등록되었습니다.";
+              const c_message = "새로운 댓글이 등록되었습니다.\n"+comment_content;
                 db.query('SELECT fcm_token FROM user WHERE student_id in(SELECT student_id FROM post WHERE post_id = ?)', [post_id], (error, results) => {
                   if (error) {
                     console.error("FCM 토큰 가져오기 실패: ", error);
