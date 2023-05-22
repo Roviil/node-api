@@ -3,7 +3,13 @@ require('dotenv').config({ path: path.join(__dirname, '../.env') });
 const jwt = require('jsonwebtoken');
 const { verifyToken } = require('../user/auth');
 const db = require('../../server/db');
+const admin = require("firebase-admin");
+const serviceAccount = require("./capstone-c28c6-962347438dd1.json");
 
+// Firebase Admin SDK 초기화
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+});
 
 const getDate = (callback) => {
   const sql = 'SELECT NOW()'; // SQL 쿼리
@@ -42,20 +48,37 @@ exports.postsget = (req, res) => {
       res.status(200).json(results);
     }
   });
-
-
 }
+
+//firebase 푸시 알림 보내기
+const sendPushNotification = (fcmTokens, message) => {
+  const messageOptions = {
+    notification: {
+      title: '새로운 공지가 등록되었습니다.',
+      body: message,
+    },
+    tokens: fcmTokens,
+  };
+
+  admin.messaging().sendEachForMulticast(messageOptions)
+    .then((response) => {
+      console.log(response.successCount + ' messages were sent successfully');
+    })
+    .catch((error) => {
+      console.error('Error sending push notification:', error);
+    });
+};
+
+
 exports.write = (req, res) => {
   verifyToken(req, res, () => {
     const post_title = req.body.post_title;
     const post_content = req.body.post_content;
-    const token = req.decoded// 헤더에서 토큰 추출
-
+    const token = req.decoded; // 헤더에서 토큰 추출
 
     try {
-
       const student_id = token.student_id; // 사용자 ID 추출
-      const post_file = req.body.post_file ? req.body.post_file : null; // post_file 이 없으면 null로 초기화
+      const post_file = req.body.post_file ? req.body.post_file : null; // post_file이 없으면 null로 초기화
       const board_id = req.body.board_id;
 
       getDate((error, date) => {
@@ -80,6 +103,32 @@ exports.write = (req, res) => {
               res.status(500).json({ message: "서버 내부 오류" });
             } else {
               console.log("게시물 작성 성공!");
+
+              if (board_id === 3) {
+                // 전체 사용자에게 알림 전송
+                const message = "전체 공지가 등록되었습니다.";
+                db.query('SELECT fcm_token FROM user', (error, results) => {
+                  if (error) {
+                    console.error("FCM 토큰 가져오기 실패: ", error);
+                    return;
+                  }
+                  const fcmTokens = results.map((row) => row.fcm_token);
+                  sendPushNotification(fcmTokens, message);
+                });
+              } else if(4 < board_id && board_id < 9) {
+                // 특정 grade 사용자에게 알림 전송
+                const message = "학년별 공지가 등록되었습니다.";
+                const grade = board_id - 4;
+                db.query('SELECT fcm_token FROM user WHERE grade = ?', [grade], (error, results) => {
+                  if (error) {
+                    console.error("FCM 토큰 가져오기 실패: ", error);
+                    return;
+                  }
+                  const fcmTokens = results.map((row) => row.fcm_token);
+                  sendPushNotification(fcmTokens, message);
+                });
+              }
+
               res.status(201).json({ message: "게시물이 성공적으로 작성되었습니다." });
             }
           });
@@ -90,8 +139,8 @@ exports.write = (req, res) => {
       res.status(401).json({ message: "토큰이 유효하지 않습니다." });
     }
   });
+};
 
-}
 
 //댓글 가져오기
 exports.comment = (req, res) => {
