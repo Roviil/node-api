@@ -54,7 +54,7 @@ exports.postsget = (req, res) => {
 const sendPushNotification = (fcmTokens, message) => {
   const messageOptions = {
     notification: {
-      title: '새로운 공지가 등록되었습니다.',
+      title: '새 알림',
       body: message,
     },
     tokens: fcmTokens,
@@ -117,8 +117,8 @@ exports.write = (req, res) => {
                 });
               } else if(4 < board_id && board_id < 9) {
                 // 특정 grade 사용자에게 알림 전송
-                const message = "학년별 공지가 등록되었습니다.";
                 const grade = board_id - 4;
+                const message = grade+"학년 공지가 등록되었습니다.";
                 db.query('SELECT fcm_token FROM user WHERE grade = ?', [grade], (error, results) => {
                   if (error) {
                     console.error("FCM 토큰 가져오기 실패: ", error);
@@ -219,6 +219,15 @@ exports.commentwrite = (req, res) => {
               console.error("댓글 작성 실패: ", error);
               res.status(500).json({ message: "서버 내부 오류" });
             } else {
+              const c_message = "새로운 댓글이 등록되었습니다.";
+                db.query('SELECT fcm_token FROM user WHERE student_id in(SELECT student_id FROM post WHERE post_id = ?)', [post_id], (error, results) => {
+                  if (error) {
+                    console.error("FCM 토큰 가져오기 실패: ", error);
+                    return;
+                  }
+                  const fcmTokens = results.map((row) => row.fcm_token);
+                  sendPushNotification(fcmTokens, c_message);
+                });
               console.log("댓글 작성 성공!");
               res.status(201).json({ message: "댓글이 성공적으로 작성되었습니다." });
             }
