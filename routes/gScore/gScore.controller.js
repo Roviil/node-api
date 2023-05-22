@@ -170,26 +170,23 @@ exports.write = (req, res) => {
 
 // 파일 서버, db 업로드
 exports.upload = (req, res) => {
-
+  const path = require('path');
   const storage = multer.diskStorage({
-    destination: function(req, file, cb) {
+    destination: function (req, file, cb) {
       cb(null, 'routes/uploads/'); //경로
     },
-    filename: function(req, file, cb) {
+    filename: function (req, file, cb) {
       const originalname = file.originalname;
-      //const ext = originalname.substring(originalname.lastIndexOf('.')); // 파일 확장자 추출
       const timestamp = Date.now(); // 현재 시간을 밀리초 단위로 변환
       const postId = req.body.gspostid; // 게시글 식별자 가져오기
       const modifiedFilename = `${postId}${timestamp}${originalname}`; // 게시글 식별자 + 시간 + 파일명으로 수정
       cb(null, modifiedFilename); // 수정된 파일 이름 설정
-    }
+    },
   });
 
   const upload = multer({ storage: storage }).single('file');
 
-  upload(req, res, function(err) {
-    const dbPath = path.resolve(req.file.path);
-
+  upload(req, res, function (err) {
     if (err instanceof multer.MulterError) {
       console.log(err);
       res.status(500).send('파일 업로드 중 에러가 발생하였습니다.');
@@ -197,33 +194,48 @@ exports.upload = (req, res) => {
       console.log(err);
       res.status(500).send('서버 내부 오류');
     } else {
-
-      // 파일 정보 DB에 저장
-
-      const reqPostId = req.body.gspostid;
-      const sql =
-        "INSERT INTO gs_file (post_id, file_name, file_original_name, file_size, file_path) VALUES (?, ?, ?, ?, ?)";
-      const values = [
-        reqPostId,
-        req.file.filename,
-        req.file.originalname,
-        req.file.size,
-        path.resolve(req.file.path)  // 파일 경로를 절대 경로로 변환
-      ];
-
-      db.query(sql, values, (error, results) => {
-        if (error) {
-          console.error("파일 정보 저장 실패: ", error);
-          res.status(500).json({ message: "서버 내부 오류" });
-        } else {
-          console.log("파일 정보 저장 성공");
-          res.status(201).json({ message: "파일 업로드가 완료되었습니다." });
-        }
-      });
-
+      // 파일 정보를 클라이언트에 전송
+      const file = req.file;
+      const fileInfo = {
+        filename: file.filename,
+        originalname: file.originalname,
+        size: file.size,
+        path: path.resolve(file.path),
+      };
+      res.status(201).json({ message: '파일 업로드가 완료되었습니다.', file: fileInfo });
     }
   });
 };
+
+
+//파일정보 DB 업로드
+exports.fileToDB = (req, res) => {
+
+  const postId = req.body.post_id;
+  const fileName = req.body.file_name;
+  const fileOriginalName = req.body.file_original_name;
+  const fileSize = req.body.file_size;
+  const filePath = req.body.file_path;
+
+  const sql =
+  "INSERT INTO gs_file (post_id, file_name, file_original_name, file_size, file_path) VALUES (?, ?, ?, ?, ?)";
+  const values = [
+  postId,fileName,fileOriginalName,fileSize,filePath
+  ];
+
+  db.query(sql, values, (error, results) => {
+    if (error) {
+      console.error("게시물 작성 실패: ", error);
+      res.status(500).json({ message: "서버 내부 오류" });
+    } else {
+      console.log("게시물 작성 성공!");
+      res.status(201).json({ message: "게시물이 성공적으로 작성되었습니다."});
+    }
+  });
+}
+
+
+
 
 
 

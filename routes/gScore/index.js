@@ -12,6 +12,7 @@ router.get('/download',controller.downloadFile);
 router.get('/writer',controller.getWriterInfo);
 router.post('/write',controller.write);
 router.post('/upload',controller.upload);
+router.post('/fileToDB',controller.fileToDB);
 router.post('/update', controller.update);
 
 router.delete('/deleteFile',controller.deleteFile);
