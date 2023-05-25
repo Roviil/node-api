@@ -39,17 +39,29 @@ exports.post = (req, res)=>{
 
 
 //졸업인증제 항목정보
-exports.gsinfo = (req, res)=>{
-  db.query('SELECT * FROM gs_info', function(err, rows, fields) {
-    if(!err) {
+exports.getType = (req, res) => {
+  db.query('SELECT DISTINCT gsinfo_type FROM gs_info', function(err, rows, fields) {
+    if (!err) {
       res.send(rows);
     } else {
-      console.log('err : ' + err);
+      console.log('err: ' + err);
       res.send(err);
     }
   });
 }
 
+// 2단계: 선택한 타입에 대한 name 값과 score 값들 불러오기
+exports.getInfoByType = (req, res) => {
+  const { type } = req.params;
+  db.query('SELECT gsinfo_name, gsinfo_score FROM gs_info WHERE gsinfo_type = ?', [type], function(err, rows, fields) {
+    if (!err) {
+      res.send(rows);
+    } else {
+      console.log('err: ' + err);
+      res.send(err);
+    }
+  }); 
+}
 
 
 //사용자 정보 리턴
@@ -259,7 +271,7 @@ exports.getFileInfo = (req, res)=>{
 
 //maxScore
 exports.getMaxScore = (req, res)=>{
-  db.query('SELECT * FROM gs_max', function(err, rows, fields) {
+  db.query('SELECT max_category,max_score FROM gs_max', function(err, rows, fields) {
     if(!err) {
       res.send(rows);
     } else {

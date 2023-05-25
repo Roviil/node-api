@@ -3,7 +3,8 @@ const router = express.Router();
 const controller = require('./gScore.controller');
 
 router.get('/',controller.post);
-router.get('/info',controller.gsinfo);
+router.get('/getType', controller.getType);
+router.get('/getInfoByType/:type', controller.getInfoByType);
 router.get('/user',controller.getUserInfo);
 router.get('/posts',controller.getPosts);
 router.get('/maxScore',controller.getMaxScore);
