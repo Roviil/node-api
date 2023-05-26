@@ -62,7 +62,6 @@ exports.login = (req, res) => {
   const query = "SELECT password FROM user WHERE student_id = ?";
   db.query(query, student_id, (error, results, fields) => {
     const encodedPassword = bcrypt.compareSync(password, results[0].password);
-    console.log(encodedPassword);
     if (error) {
       console.error(error);
       res.status(500).send('내부 서버 오류');
@@ -93,27 +92,6 @@ exports.login = (req, res) => {
 };
 
 
-/*
-exports.logout = (req, res) => {
-  const token = req.headers.authorization.split(' ')[1]; // get token from headers
-  jwt.verify(token, process.env.JWT_SECRET, (error, decoded) => {
-    if (error) {
-      console.error(error);
-      res.status(500).send('내부 서버 오류');
-    } else {
-      // Expire token immediately
-      const expiredToken = jwt.sign({
-        student_id: decoded.student_id,
-      }, process.env.JWT_SECRET, {
-        expiresIn: 0,
-        issuer: decoded.student_id,
-      });
-      res.status(200).json({ message: '로그아웃 성공', token: expiredToken });
-    }
-  });
-};
-*/
-
     exports.sendVerificationEmail = (req, res) => {
           const { email } = req.body;
           const verificationCode = randomstring.generate(6); // 6자리의 인증번호 생성
@@ -135,9 +113,6 @@ exports.logout = (req, res) => {
               console.error(error);
               res.status(500).send('이메일 전송 중 오류가 발생했습니다.');
             } else {
-              console.log('이메일이 성공적으로 발송되었습니다.', info.response);
-              // 이메일 전송이 성공한 경우, 클라이언트에게 인증번호를 전달
-
               res.status(200).json({ verificationCode });
             }
           });
@@ -233,7 +208,6 @@ exports.logout = (req, res) => {
         res.status(500).send('서버 내부 오류');
       } else {
         // 정상적으로 파일 업로드 완료시
-        console.log(req.file);
         res.status(201).send('파일 업로드가 완료되었습니다.');
       }
     });
