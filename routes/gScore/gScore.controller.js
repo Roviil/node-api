@@ -574,4 +574,107 @@ function updateGraduationScore(userId, category, prevAcceptedScore, res) {
     });
   }
 
+//전체학생 학번, 이름정보  리턴
+exports.getAllUserInfo = (req, res) => {
+  db.query('SELECT student_id, name FROM user', function(err, rows, fields) {
+    if (!err) {
+      res.status(200).send(rows); 
+    } else {
+      console.log('err: ' + err);
+      res.status(500).send(err); 
+    }
+  });
+};
 
+//gs_info에 항목 추가
+exports.insertInfo = (req, res) => {
+
+  const category = req.body.category;
+  const name = req.body.name;
+  const score = req.body.score;
+
+
+  const sql =
+  "INSERT INTO gs_info (gsinfo_type, gsinfo_name, gsinfo_score) VALUES (?, ?, ?)";
+  const values = [
+  category, name, score
+  ];
+
+  db.query(sql, values, (error, results) => {
+    if (error) {
+      console.error("항목 추가 실패: ", error);
+      res.status(500).json({ message: "서버 내부 오류" });
+    } else {
+      console.log("항목 추가 성공!");
+      res.status(201).json({ message: "항목 추가 성공" });
+    }
+  });
+}
+
+//gs_info에서 항목 수정
+exports.updateInfo = (req, res) => {
+
+  const category = req.body.category;
+  const name = req.body.name;
+  const newName = req.body.newName;
+  const newScore = req.body.newScore;
+
+  const sql = 'UPDATE gs_info SET gsinfo_name = ?, gsinfo_score = ? WHERE gsinfo_type = ? and gsinfo_name = ?';
+  const values = [
+    newName, newScore, category, name
+    ];
+
+  const query = db.query(sql, values, (err, result) => {
+    if (err) {
+      console.error("항목 수정 실패: ", err);
+      res.status(500).json({ message: "서버 내부 오류" });
+    } else {
+      console.log("항목 수정 성공");
+      res.status(201).json({ message: "항목 수정 성공" });
+    }
+  });
+};
+
+//gs_info에서 항목 삭제
+exports.deleteInfo = (req, res) => {
+
+  const category = req.body.category;
+  const name = req.body.name;
+
+  const sql = 'DELETE FROM gs_info WHERE gsinfo_type = ? and gsinfo_name = ?';
+  const values = [
+    category, name
+    ];
+
+  const query = db.query(sql, values, (err, result) => {
+    if (err) {
+      console.error("항목 삭제 실패: ", err);
+      res.status(500).json({ message: "서버 내부 오류" });
+    } else {
+      console.log("항목 삭제 성공");
+      res.status(201).json({ message: "항목 삭제 성공" });
+    }
+  });
+};
+
+//카테고리 최댓값 수정
+exports.updateMaxScore = (req, res) => {
+
+  const category = req.body.category;
+  const newScore = req.body.newScore;
+
+  const sql = 'UPDATE gs_max SET max_score = ? WHERE max_category = ?';
+  const values = [
+    newScore, category
+    ];
+
+  const query = db.query(sql, values, (err, result) => {
+    if (err) {
+      console.error("최댓값 수정 실패: ", err);
+      res.status(500).json({ message: "서버 내부 오류" });
+    } else {
+      console.log("최댓값 수정 성공");
+      res.status(201).json({ message: "최댓값 수정 성공" });
+    }
+  });
+};
