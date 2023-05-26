@@ -39,17 +39,29 @@ exports.post = (req, res)=>{
 
 
 //졸업인증제 항목정보
-exports.gsinfo = (req, res)=>{
-  db.query('SELECT * FROM gs_info', function(err, rows, fields) {
-    if(!err) {
+exports.getType = (req, res) => {
+  db.query('SELECT DISTINCT gsinfo_type FROM gs_info', function(err, rows, fields) {
+    if (!err) {
       res.send(rows);
     } else {
-      console.log('err : ' + err);
+      console.log('err: ' + err);
       res.send(err);
     }
   });
 }
 
+// 2단계: 선택한 타입에 대한 name 값과 score 값들 불러오기
+exports.getInfoByType = (req, res) => {
+  const { type } = req.params;
+  db.query('SELECT gsinfo_name, gsinfo_score FROM gs_info WHERE gsinfo_type = ?', [type], function(err, rows, fields) {
+    if (!err) {
+      res.send(rows);
+    } else {
+      console.log('err: ' + err);
+      res.send(err);
+    }
+  }); 
+}
 
 
 //사용자 정보 리턴
@@ -170,26 +182,23 @@ exports.write = (req, res) => {
 
 // 파일 서버, db 업로드
 exports.upload = (req, res) => {
-
+  const path = require('path');
   const storage = multer.diskStorage({
-    destination: function(req, file, cb) {
+    destination: function (req, file, cb) {
       cb(null, 'routes/uploads/'); //경로
     },
-    filename: function(req, file, cb) {
+    filename: function (req, file, cb) {
       const originalname = file.originalname;
-      //const ext = originalname.substring(originalname.lastIndexOf('.')); // 파일 확장자 추출
       const timestamp = Date.now(); // 현재 시간을 밀리초 단위로 변환
       const postId = req.body.gspostid; // 게시글 식별자 가져오기
       const modifiedFilename = `${postId}${timestamp}${originalname}`; // 게시글 식별자 + 시간 + 파일명으로 수정
       cb(null, modifiedFilename); // 수정된 파일 이름 설정
-    }
+    },
   });
 
   const upload = multer({ storage: storage }).single('file');
 
-  upload(req, res, function(err) {
-    const dbPath = path.resolve(req.file.path);
-
+  upload(req, res, function (err) {
     if (err instanceof multer.MulterError) {
       console.log(err);
       res.status(500).send('파일 업로드 중 에러가 발생하였습니다.');
@@ -197,33 +206,48 @@ exports.upload = (req, res) => {
       console.log(err);
       res.status(500).send('서버 내부 오류');
     } else {
-
-      // 파일 정보 DB에 저장
-
-      const reqPostId = req.body.gspostid;
-      const sql =
-        "INSERT INTO gs_file (post_id, file_name, file_original_name, file_size, file_path) VALUES (?, ?, ?, ?, ?)";
-      const values = [
-        reqPostId,
-        req.file.filename,
-        req.file.originalname,
-        req.file.size,
-        path.resolve(req.file.path)  // 파일 경로를 절대 경로로 변환
-      ];
-
-      db.query(sql, values, (error, results) => {
-        if (error) {
-          console.error("파일 정보 저장 실패: ", error);
-          res.status(500).json({ message: "서버 내부 오류" });
-        } else {
-          console.log("파일 정보 저장 성공");
-          res.status(201).json({ message: "파일 업로드가 완료되었습니다." });
-        }
-      });
-
+      // 파일 정보를 클라이언트에 전송
+      const file = req.file;
+      const fileInfo = {
+        filename: file.filename,
+        originalname: file.originalname,
+        size: file.size,
+        path: path.resolve(file.path),
+      };
+      res.status(201).json({ message: '파일 업로드가 완료되었습니다.', file: fileInfo });
     }
   });
 };
+
+
+//파일정보 DB 업로드
+exports.fileToDB = (req, res) => {
+
+  const postId = req.body.post_id;
+  const fileName = req.body.file_name;
+  const fileOriginalName = req.body.file_original_name;
+  const fileSize = req.body.file_size;
+  const filePath = req.body.file_path;
+
+  const sql =
+  "INSERT INTO gs_file (post_id, file_name, file_original_name, file_size, file_path) VALUES (?, ?, ?, ?, ?)";
+  const values = [
+  postId,fileName,fileOriginalName,fileSize,filePath
+  ];
+
+  db.query(sql, values, (error, results) => {
+    if (error) {
+      console.error("게시물 작성 실패: ", error);
+      res.status(500).json({ message: "서버 내부 오류" });
+    } else {
+      console.log("게시물 작성 성공!");
+      res.status(201).json({ message: "게시물이 성공적으로 작성되었습니다."});
+    }
+  });
+}
+
+
+
 
 
 
@@ -247,7 +271,7 @@ exports.getFileInfo = (req, res)=>{
 
 //maxScore
 exports.getMaxScore = (req, res)=>{
-  db.query('SELECT * FROM gs_max', function(err, rows, fields) {
+  db.query('SELECT max_category,max_score FROM gs_max', function(err, rows, fields) {
     if(!err) {
       res.send(rows);
     } else {
@@ -324,154 +348,164 @@ exports.getWriterInfo = (req, res)=>{
 
 
 exports.update = (req, res) => {
-    verifyToken(req, res, () => {
-      const postuserid = req.body.gs_user;;// 수정할 게시글의 ID
-      const postId = req.body.postId;
-      const category = req.body.gspost_category;
-      const item = req.body.gspost_item;
-      const content = req.body.gspost_content;
-      const prevPass = req.body.prev_gspost_pass; // 이전의 게시물 승인 여부
-      const pass = req.body.gspost_pass; // 변경된 게시물 승인 여부
-      const reason = req.body.gspost_reason;
-      const startDate = req.body.gspost_start_date;
-      const endDate = req.body.gspost_end_date;
-      const filecheck = req.body.gspost_file;
-      const prevAcceptedScore = req.body.prev_acceptedScore; // 이전의 acceptedScore 값
-      const acceptedScore = req.body.acceptedScore; // 변경된 acceptedScore 값
-  
-      const token = req.decoded; // 헤더에서 토큰 추출
-  
-      try {
-        const student_id = token.student_id; // 사용자 ID 추출
-        db.query(`SELECT permission FROM user WHERE student_id = ${student_id}`, function (err, row, fields) {
-          if (!err) {
-            const permission = row[0].permission;
-  
-              if (permission === 2 || student_id === postuserid) {
-              const sql =
-                "UPDATE gs_post SET gspost_category = ?, gspost_item = ?,gspost_content = ?, gspost_pass = ?, gspost_reason = ?, gspost_start_date = ?, gspost_end_date = ?, gspost_file = ? WHERE gspost_id = ?";
-              const values = [
-                category,
-                item,
-                content,
-                pass,
-                reason,
-                startDate,
-                endDate,
-                filecheck,
-                postId,
-              ];
-  
-              db.query(sql, values, (error, results) => {
-                if (error) {
-                  console.error("게시물 수정 실패: ", error);
-                  res.status(500).json({ message: "서버 내부 오류" });
-                } else if (results.affectedRows === 0) {
-                  // 수정할 게시글이 해당 사용자에게 속해있지 않은 경우
-                  res.status(403).json({ message: "해당 게시물을 수정할 권한이 없습니다." });
-                } else {
-                  console.log("게시물 수정 성공!");
-                  if (prevPass === "승인" && pass === "반려" || pass === "대기") {
-                    // 승인에서 반려인 경우 카테고리의 총점에서 prevAcceptedScore 값을 빼줍니다.
-                    const updateScoreSql = "UPDATE user SET graduation_score = JSON_SET(graduation_score, ?, CAST(JSON_EXTRACT(graduation_score, ?) - ? AS UNSIGNED)) WHERE student_id = ?";
-                    const updateScoreValues = [`$."${category}"`, `$."${category}"`, prevAcceptedScore, postuserid];
-                  
-                    db.query(updateScoreSql, updateScoreValues, (error, scoreResults) => {
-                      if (error) {
-                        console.error("graduation_score 업데이트 실패: ", error);
-                        res.status(500).json({ message: "서버 내부 오류" });
-                      } else {
-                        console.log("graduation_score 업데이트 성공!");
-                        const updateAcceptedScoreSql = "UPDATE gs_post SET gspost_accepted_score = 0 WHERE gspost_id = ?";
-                        const updateAcceptedScoreValues = [postId];
-  
-                        db.query(updateAcceptedScoreSql, updateAcceptedScoreValues, (error, acceptedScoreResults) => {
-                        if (error) {
-                        console.error("gspost_accepted_score 업데이트 실패: ", error);
-                        res.status(500).json({ message: "서버 내부 오류" });
-                        } else {
-                          console.log("gspost_accepted_score 업데이트 성공!");
-                          res.status(200).json({ message: "게시물이 성공적으로 수정되었습니다." });
-                          }
-                       });
-                      }
-                    });
-                  }
-
-                  if (prevPass === "대기" || prevPass === "반려" && pass === "승인") {
-                    // 미승인에서 승인인 경우 카테고리의 총점에 acceptedScore 값을 더해줍니다.
-                    const updateScoreSql = "UPDATE user SET graduation_score = JSON_SET(graduation_score, ?, CAST(JSON_EXTRACT(graduation_score, ?) + ? AS UNSIGNED)) WHERE student_id = ?";
-                    const updateScoreValues = [`$."${category}"`, `$."${category}"`, acceptedScore, postuserid];
-                  
-                    db.query(updateScoreSql, updateScoreValues, (error, scoreResults) => {
-                      if (error) {
-                        console.error("graduation_score 업데이트 실패: ", error);
-                        res.status(500).json({ message: "서버 내부 오류" });
-                      } else {
-                        console.log("graduation_score 업데이트 성공!");
-                        const updateAcceptedScoreSql = "UPDATE gs_post SET gspost_accepted_score = ? WHERE gspost_id = ?";
-                        const updateAcceptedScoreValues = [acceptedScore, postId];
-                  
-                        db.query(updateAcceptedScoreSql, updateAcceptedScoreValues, (error, acceptedScoreResults) => {
-                          if (error) {
-                            console.error("gspost_accepted_score 업데이트 실패: ", error);
-                            res.status(500).json({ message: "서버 내부 오류" });
-                          } else {
-                            console.log("gspost_accepted_score 업데이트 성공!");
-                            res.status(200).json({ message: "게시물이 성공적으로 수정되었습니다." });
-                          }
-                        });
-                      }
-                    });
-                  }
-
-                  if (prevPass === "승인" && pass === "승인") {
-                    // 승인에서 승인인 경우 카테고리의 총점에서 prevAcceptedScore 값을 빼고 acceptedScore 값을 더해줍니다.
-                    const updateScoreSql = "UPDATE user SET graduation_score = JSON_SET(graduation_score, ?, CAST(JSON_EXTRACT(graduation_score, ?) - ? + ? AS UNSIGNED)) WHERE student_id = ?";
-                    const updateScoreValues = [`$."${category}"`, `$."${category}"`, prevAcceptedScore, acceptedScore, postuserid];
-                    
-                    db.query(updateScoreSql, updateScoreValues, (error, scoreResults) => {
-                      if (error) {
-                        console.error("graduation_score 업데이트 실패: ", error);
-                        res.status(500).json({ message: "서버 내부 오류" });
-                      } else {
-                        console.log("graduation_score 업데이트 성공!");
-                        const updateAcceptedScoreSql = "UPDATE gs_post SET gspost_accepted_score = ? WHERE gspost_id = ?";
-                        const updateAcceptedScoreValues = [acceptedScore, postId];
-                  
-                        db.query(updateAcceptedScoreSql, updateAcceptedScoreValues, (error, acceptedScoreResults) => {
-                          if (error) {
-                            console.error("gspost_accepted_score 업데이트 실패: ", error);
-                            res.status(500).json({ message: "서버 내부 오류" });
-                          } else {
-                            console.log("gspost_accepted_score 업데이트 성공!");
-                            res.status(200).json({ message: "게시물이 성공적으로 수정되었습니다." });
-                          }
-                        });
-                      }
-                    });
-                  }
-  
-                }
-              });
-            }
-          }
-          });
-        }
-      catch (error) {
-            console.error("오류 발생: ", error);
-            res.status(500).json({ message: "서버 내부 오류" });
-          }
-        });
-}
-
-exports.deletePost = (req, res) => {
-  
   verifyToken(req, res, () => {
+    const postuserid = req.body.gs_user;;// 수정할 게시글의 ID
     const postId = req.body.postId;
+    const score = req.body.gspost_score;
+    const category = req.body.gspost_category;
+    const item = req.body.gspost_item;
+    const content = req.body.gspost_content;
+    const prevPass = req.body.prev_gspost_pass; // 이전의 게시물 승인 여부
+    const pass = req.body.gspost_pass; // 변경된 게시물 승인 여부
+    const reason = req.body.gspost_reason;
+    const startDate = req.body.gspost_start_date;
+    const endDate = req.body.gspost_end_date;
+    const filecheck = req.body.gspost_file;
+    const prevAcceptedScore = req.body.prev_acceptedScore; // 이전의 acceptedScore 값
+    let acceptedScore;
 
     const token = req.decoded; // 헤더에서 토큰 추출
 
+    try {
+      const student_id = token.student_id; // 사용자 ID 추출
+      db.query(`SELECT permission FROM user WHERE student_id = ${student_id}`, function (err, row, fields) {
+        if (!err) {
+          const permission = row[0].permission;
+
+            if (permission === 2 || parseInt(student_id, 10) === postuserid) {
+            const sql =
+              "UPDATE gs_post SET gspost_category = ?, gspost_score = ?,gspost_item = ?,gspost_content = ?, gspost_pass = ?, gspost_reason = ?, gspost_start_date = ?, gspost_end_date = ?, gspost_file = ? WHERE gspost_id = ?";
+            const values = [
+              category,
+              score,
+              item,
+              content,
+              pass,
+              reason,
+              startDate,
+              endDate,
+              filecheck,
+              postId,
+            ];
+
+            db.query(sql, values, (error, results) => {
+              if (error) {
+                console.error("게시물 수정 실패: ", error);
+                res.status(500).json({ message: "서버 내부 오류" });
+              } else if (results.affectedRows === 0) {
+                // 수정할 게시글이 해당 사용자에게 속해있지 않은 경우
+                res.status(403).json({ message: "해당 게시물을 수정할 권한이 없습니다." });
+              } else {
+                console.log("게시물 수정 성공!");
+                
+                if (prevPass === "승인" && (pass === "반려" || pass === "대기")) {
+                  // 승인에서 반려인 경우 카테고리의 총점에서 prevAcceptedScore 값을 빼줍니다.
+                  const updateScoreSql = "UPDATE user SET graduation_score = JSON_SET(graduation_score, ?, CAST(JSON_EXTRACT(graduation_score, ?) - ? AS UNSIGNED)) WHERE student_id = ?";
+                  const updateScoreValues = [`$."${category}"`, `$."${category}"`, prevAcceptedScore, postuserid];
+                
+                  db.query(updateScoreSql, updateScoreValues, (error, scoreResults) => {
+                    if (error) {
+                      console.error("graduation_score 업데이트 실패: ", error);
+                      res.status(500).json({ message: "서버 내부 오류" });
+                    } else {
+                      console.log("graduation_score 업데이트 성공!");
+                      const updateAcceptedScoreSql = "UPDATE gs_post SET gspost_accepted_score = 0 WHERE gspost_id = ?";
+                      const updateAcceptedScoreValues = [postId];
+
+                      db.query(updateAcceptedScoreSql, updateAcceptedScoreValues, (error, acceptedScoreResults) => {
+                      if (error) {
+                      console.error("gspost_accepted_score 업데이트 실패: ", error);
+                      res.status(500).json({ message: "서버 내부 오류" });
+                      } else {
+                        console.log("gspost_accepted_score 업데이트 성공!");
+                        res.status(200).json({ message: "게시물이 성공적으로 수정되었습니다." });
+                        }
+                     });
+                    }
+                  });
+                }
+
+                else if ((prevPass === "대기" || prevPass === "반려" )&&  pass === "승인") {
+                  // 미승인에서 승인인 경우 카테고리의 총점에 acceptedScore 값을 더해줍니다.
+                  acceptedScore = score;
+                  const updateScoreSql = "UPDATE user SET graduation_score = JSON_SET(graduation_score, ?, CAST(JSON_EXTRACT(graduation_score, ?) + ? AS UNSIGNED)) WHERE student_id = ?";
+                  const updateScoreValues = [`$."${category}"`, `$."${category}"`, acceptedScore, postuserid];
+                
+                  db.query(updateScoreSql, updateScoreValues, (error, scoreResults) => {
+                    if (error) {
+                      console.error("graduation_score 업데이트 실패: ", error);
+                      res.status(500).json({ message: "서버 내부 오류" });
+                    } else {
+                      console.log("graduation_score 업데이트 성공!");
+                      const updateAcceptedScoreSql = "UPDATE gs_post SET gspost_score = ?, gspost_accepted_score = ? WHERE gspost_id = ?";
+                      const updateAcceptedScoreValues = [score,acceptedScore, postId];
+                
+                      db.query(updateAcceptedScoreSql, updateAcceptedScoreValues, (error, acceptedScoreResults) => {
+                        if (error) {
+                          console.error("gspost_accepted_score 업데이트 실패: ", error);
+                          res.status(500).json({ message: "서버 내부 오류" });
+                        } else {
+                          console.log("gspost_accepted_score 업데이트 성공!");
+                          res.status(200).json({ message: "게시물이 성공적으로 수정되었습니다." });
+                        }
+                      });
+                    }
+                  });
+                }
+
+                else if (prevPass === "승인" && pass === "승인") {
+                  // 승인에서 승인인 경우 카테고리의 총점에서 prevAcceptedScore 값을 빼고 acceptedScore 값을 더해줍니다.
+                  acceptedScore = score;
+                  const updateScoreSql = "UPDATE user SET graduation_score = JSON_SET(graduation_score, ?, CAST(JSON_EXTRACT(graduation_score, ?) - ? + ? AS UNSIGNED)) WHERE student_id = ?";
+                  const updateScoreValues = [`$."${category}"`, `$."${category}"`, prevAcceptedScore, acceptedScore, postuserid];
+                  
+                  db.query(updateScoreSql, updateScoreValues, (error, scoreResults) => {
+                    if (error) {
+                      console.error("graduation_score 업데이트 실패: ", error);
+                      res.status(500).json({ message: "서버 내부 오류" });
+                    } else {
+                      console.log("graduation_score 업데이트 성공!");
+                      const updateAcceptedScoreSql = "UPDATE gs_post SET gspost_score = ? ,gspost_accepted_score = ? WHERE gspost_id = ?";
+                      const updateAcceptedScoreValues = [score,acceptedScore, postId];
+                
+                      db.query(updateAcceptedScoreSql, updateAcceptedScoreValues, (error, acceptedScoreResults) => {
+                        if (error) {
+                          console.error("gspost_accepted_score 업데이트 실패: ", error);
+                          res.status(500).json({ message: "서버 내부 오류" });
+                        } else {
+                          console.log("gspost_accepted_score 업데이트 성공!");
+                          res.status(200).json({ message: "게시물이 성공적으로 수정되었습니다." });
+                        }
+                      });
+                    }
+                  });
+                }
+                else{
+                  res.status(200).json({ message: "게시물이 성공적으로 수정되었습니다." });
+                }
+
+              }
+            });
+          }
+          else{
+            console.log("첫번째는 권한, 두번째는 로그인정보, 세번째는 해당 게시글 글쓴이id, 뭐가문제일까요~", permission, student_id, postuserid);
+
+          }
+        }
+        });
+      }
+    catch (error) {
+          console.error("오류 발생: ", error);
+          res.status(500).json({ message: "서버 내부 오류" });
+        }
+      });
+}
+
+
+exports.deletePost = (req, res) => {
+  verifyToken(req, res, () => {
+  const postId = req.query.postId;
+  const token = req.decoded; // 헤더에서 토큰 추출
   try {
     const student_id = token.student_id; // 사용자 ID 추출
     db.query(`SELECT permission FROM user WHERE student_id = ${student_id}`, (err, permissionResults) => {
@@ -480,55 +514,41 @@ exports.deletePost = (req, res) => {
         res.status(500).json({ message: "서버 내부 오류" });
       } else {
         const permission = permissionResults[0].permission;
-    
-        if (permission === 2 || student_id === postuserid) {
-          db.query(`SELECT gsuser_id, gspost_pass, gspost_category, gspost_accepted_score FROM gs_post WHERE gspost_id = ${postId}`, (err, postResults) => {
-            if (err) {
-              console.error("게시물 조회 실패: ", err);
-              res.status(500).json({ message: "서버 내부 오류" });
-            } else if (postResults.length === 0) {
-              res.status(404).json({ message: "해당 게시물을 찾을 수 없습니다." });
-            } else {
-              const postUserId = postResults[0].gsuser_id;
-              const postPass = postResults[0].gspost_pass;
-              const category = postResults[0].gspost_category;
-              const prevAcceptedScore = postResults[0].gspost_accepted_score;
-
-              if (permission === 2 || studentId === postUserId) {
-                // 게시글 삭제
-                db.query("DELETE FROM gs_post WHERE gspost_id = ?", [postId], (err, deleteResults) => {
-                  if (err) {
-                    console.error("게시물 삭제 실패: ", err);
-                    res.status(500).json({ message: "서버 내부 오류" });
-                  } else if (deleteResults.affectedRows === 0) {
-                    res.status(404).json({ message: "해당 게시물을 찾을 수 없습니다." });
+        db.query(`SELECT gsuser_id, gspost_pass, gspost_category, gspost_accepted_score FROM gs_post WHERE gspost_id = ${postId}`, (err, postResults) => {
+          if (err) {
+            console.error("게시물 조회 실패: ", err);
+            res.status(500).json({ message: "서버 내부 오류" });
+          } else if (postResults.length === 0) {
+            res.status(404).json({ message: "해당 게시물을 찾을 수 없습니다." });
+          } else {
+            const postPass = postResults[0].gspost_pass;
+            const category = postResults[0].gspost_category;
+            const prevAcceptedScore = postResults[0].gspost_accepted_score;
+            const postuserid = postResults[0].gsuser_id;
+  
+            if (permission === 2 || parseInt(student_id, 10) === postuserid) {
+              // 게시글 삭제
+              db.query("DELETE FROM gs_post WHERE gspost_id = ?", [postId], (err, deleteResults) => {
+                if (err) {
+                  console.error("게시물 삭제 실패: ", err);
+                  res.status(500).json({ message: "서버 내부 오류" });
+                } else if (deleteResults.affectedRows === 0) {
+                  res.status(404).json({ message: "해당 게시물을 찾을 수 없습니다." });
+                } else {
+                  console.log("게시물 삭제 성공!");
+                  if (postPass === "승인") {
+                    // 승인된 게시물인 경우 graduation_score 업데이트
+                    updateGraduationScore(postuserid, category, prevAcceptedScore, res);
                   } else {
-                    console.log("게시물 삭제 성공!");
-                    if (postPass === "승인") {
-                      // 승인된 게시물인 경우 graduation_score 업데이트
-                      const updateScoreSql = "UPDATE user SET graduation_score = JSON_SET(graduation_score, ?, CAST(JSON_EXTRACT(graduation_score, ?) - ? AS UNSIGNED)) WHERE student_id = ?";
-                      const updateScoreValues = [`$."${category}"`, `$."${category}"`, prevAcceptedScore, postUserId];
-                    
-                      db.query(updateScoreSql, updateScoreValues, (error, scoreResults) => {
-                        if (error) {
-                          console.error("graduation_score 업데이트 실패: ", error);
-                          res.status(500).json({ message: "서버 내부 오류" });
-                        } else {
-                          console.log("graduation_score 업데이트 성공!");
-                          res.status(200).json({ message: "게시물이 성공적으로 삭제되었습니다." });
-                        }
-                      });
-                    }
+                    res.status(200).json({ message: "게시물이 성공적으로 삭제되었습니다." });
                   }
-                });
-              } else {
-                res.status(403).json({ message: "해당 게시물을 삭제할 권한이 없습니다." });
-              }
+                }
+              });
+            } else {
+              res.status(403).json({ message: "해당 게시물을 삭제할 권한이 없습니다." });
             }
-          });
-        } else {
-          res.status(403).json({ message: "해당 게시물을 삭제할 권한이 없습니다." });
-        }
+          }
+        });
       }
     });
   } catch (error) {
@@ -536,6 +556,22 @@ exports.deletePost = (req, res) => {
     res.status(500).json({ message: "서버 내부 오류" });
   }
   });
-}
+  };
+
+
+function updateGraduationScore(userId, category, prevAcceptedScore, res) {
+    const updateScoreSql = "UPDATE user SET graduation_score = JSON_SET(graduation_score, ?, CAST(JSON_EXTRACT(graduation_score, ?) - ? AS UNSIGNED)) WHERE student_id = ?";
+    const updateScoreValues = [`$."${category}"`, `$."${category}"`, prevAcceptedScore, userId];
+  
+    db.query(updateScoreSql, updateScoreValues, (error, scoreResults) => {
+      if (error) {
+        console.error("graduation_score 업데이트 실패: ", error);
+        res.status(500).json({ message: "서버 내부 오류" });
+      } else {
+        console.log("graduation_score 업데이트 성공!");
+        res.status(200).json({ message: "게시물이 성공적으로 삭제되었습니다." });
+      }
+    });
+  }
 
 

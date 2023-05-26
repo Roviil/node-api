@@ -102,9 +102,7 @@ exports.write = (req, res) => {
               console.error("게시물 작성 실패: ", error);
               res.status(500).json({ message: "서버 내부 오류" });
             } else {
-              console.log("게시물 작성 성공!");
-
-              if (board_id === 3) {
+                            if (board_id === 3) {
                 // 전체 사용자에게 알림 전송
                 const message = "전체 공지가 등록되었습니다.";
                 db.query('SELECT fcm_token FROM user', (error, results) => {
@@ -219,6 +217,7 @@ exports.commentwrite = (req, res) => {
               console.error("댓글 작성 실패: ", error);
               res.status(500).json({ message: "서버 내부 오류" });
             } else {
+
               const c_message = "새로운 댓글이 등록되었습니다.\n"+comment_content;
                 db.query('SELECT fcm_token FROM user WHERE student_id in(SELECT student_id FROM post WHERE post_id = ?)', [post_id], (error, results) => {
                   if (error) {
@@ -241,38 +240,6 @@ exports.commentwrite = (req, res) => {
   });
 }
 
-/* DELETE 버전 댓글 삭제.
-exports.deleteComment = (req, res) => {
-  verifyToken(req, res, () => {
-    const comment_id = req.query.comment_id;
-    const token = req.decoded; // 헤더에서 토큰 추출
-
-    try {
-      const student_id = token.student_id; // 사용자 ID 추출
-
-      const sql = "DELETE FROM comment WHERE comment_id=? AND student_id=?"; // SQL 쿼리
-      const values = [comment_id, student_id]; // SQL 쿼리 값
-
-      db.query(sql, values, (error, results) => {
-        if (error) {
-          console.error("댓글 삭제 실패: ", error);
-          res.status(500).json({ message: "서버 내부 오류" });
-        } else if (!error){
-          console.log("댓글 삭제 성공!");
-          res.status(200).json({ message: "댓글이 삭제되었습니다." });
-        }
-        else{
-          console.log("댓글 삭제 권한 없음");
-          res.status(300).json({ message: "권한이 없습니다." });
-        }
-      });
-    } catch (err) {
-      console.error("토큰 검증 실패: ", err);
-      res.status(401).json({ message: "토큰이 유효하지 않습니다." });
-    }
-  });
-};
-*/
 
 exports.deleteComment = (req, res) => {
   verifyToken(req, res, () => {
@@ -294,7 +261,6 @@ exports.deleteComment = (req, res) => {
             console.error("댓글 삭제 실패: ", error);
             res.status(500).json({ message: "서버 내부 오류" });
           } else if (select_student_id[0].student_id == student_id){
-            console.log("댓글 삭제 성공!");
             res.status(200).json({ message: "댓글이 삭제되었습니다." });
           }
           else{
@@ -337,7 +303,6 @@ exports.updateComment = (req, res) => {
             console.error("댓글 삭제 실패: ", error);
             res.status(500).json({ message: "서버 내부 오류" });
           } else if (select_student_id[0].student_id == student_id){
-            console.log("댓글 삭제 성공!");
             res.status(200).json({ message: "댓글이 삭제되었습니다." });
           }
           else{
@@ -400,7 +365,6 @@ exports.deletePost = (req, res) => {
     var a;
     db.query(sql, token.student_id, (selectError, selectResult) => {
       a = selectResult[0].permission;
-      console.log(a)
       
     });
     
@@ -423,7 +387,6 @@ exports.deletePost = (req, res) => {
             } else if (results.affectedRows === 0) {
               res.status(404).json({ message: "해당 게시물을 찾을 수 없습니다." });
             } else {
-              console.log("게시물 삭제 성공!");
               res.status(200).json({ message: "게시물이 성공적으로 삭제되었습니다." });
             }
           });
@@ -471,7 +434,6 @@ exports.introduction_update = (req, res) => {
             res.status(500).json({ message: "서버 내부 오류" });
           } 
           else{
-            console.log("댓글 삭제 성공!");
             res.status(200).json({ message: "자기소개 수정되었습니다." });
           }
         });
@@ -487,7 +449,6 @@ exports.board = (req, res) => {
   const board_id = req.query.board_id;
   db.query('SELECT * FROM board WHERE board_id = ?', [board_id] ,function (err, rows, fields) {
     if (!err) {
-      console.log(rows)
       res.status(201).json({rows}); // response send rows
     } else {
       console.log('err : ' + err);
