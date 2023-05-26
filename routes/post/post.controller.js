@@ -75,12 +75,10 @@ exports.write = (req, res) => {
     const post_title = req.body.post_title;
     const post_content = req.body.post_content;
     const token = req.decoded; // 헤더에서 토큰 추출
-
     try {
       const student_id = token.student_id; // 사용자 ID 추출
       const post_file = req.body.post_file ? req.body.post_file : null; // post_file이 없으면 null로 초기화
       const board_id = req.body.board_id;
-
       getDate((error, date) => {
         if (error) {
           console.error("날짜 가져오기 실패: ", error);
@@ -96,13 +94,13 @@ exports.write = (req, res) => {
             post_file,
             board_id,
           ];
-
           db.query(sql, values, (error, results) => {
             if (error) {
               console.error("게시물 작성 실패: ", error);
               res.status(500).json({ message: "서버 내부 오류" });
             } else {
-                            if (board_id === 3) {
+              console.log("게시물 작성 성공!");
+              if (board_id === 3) {
                 // 전체 사용자에게 알림 전송
                 const message = "전체 공지가 등록되었습니다.";
                 db.query('SELECT fcm_token FROM user', (error, results) => {
@@ -126,7 +124,6 @@ exports.write = (req, res) => {
                   sendPushNotification(fcmTokens, message);
                 });
               }
-
               res.status(201).json({ message: "게시물이 성공적으로 작성되었습니다." });
             }
           });
