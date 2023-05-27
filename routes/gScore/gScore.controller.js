@@ -101,7 +101,10 @@ exports.getPosts = (req, res) => {
         if (!err) {
           const permission = row[0].permission;
           if (permission === 2 || permission === 3) {
-            db.query('SELECT * FROM gs_post', function (err, rows, fields) {
+            const query = 'SELECT * FROM gs_post WHERE gsuser_id != ?';
+            const values = [student_id];
+            
+            db.query(query, values, function (err, rows, fields) {
               if (!err) {
                 res.status(200).json(rows);
               } else {
@@ -795,3 +798,74 @@ function updategscore(userId, category, score) {
     });
   });
 }
+
+
+exports.ass_write = (req, res) => {
+  verifyToken(req, res, () => {
+    const category = req.body.gspost_category;
+    const item = req.body.gspost_item;
+    const score = req.body.gspost_score;
+    const content = req.body.gspost_content;
+    const pass = req.body.gspost_pass;
+    const reason = req.body.gspost_reason;
+    const filecheck = req.body.gspost_file;
+    const studentIds = req.body.gspost_student; // stuId 값을 받아옴
+
+    const token = req.decoded// 헤더에서 토큰 추출
+
+    try {
+
+      const student_id = token.student_id; // 사용자 ID 추출
+
+      getDate((error, date) => {
+        if (error) {
+          console.error("날짜 가져오기 실패: ", error);
+          return res.status(500).send("서버 내부 오류");
+        } else {
+          const sql =
+            "INSERT INTO gs_post (gsuser_id,gspost_post_date,gspost_category,gspost_item,gspost_score,gspost_content,gspost_pass,gspost_reason,gspost_file) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+          const values = [
+            student_id,date,category,item,score,JSON.stringify(studentIds),pass,reason,filecheck
+          ];
+
+          db.query(sql, values, (error, results) => {
+            if (error) {
+              console.error("게시물 작성 실패: ", error);
+              res.status(500).json({ message: "서버 내부 오류" });
+            } else {
+              console.log("게시물 작성 성공!");
+              const newPostId = results.insertId; // 새로 생성된 게시글의 ID값
+              res.status(201).json({ message: "게시물이 성공적으로 작성되었습니다.", postId: newPostId });
+            }
+          });
+        }
+      });
+    } catch (err) {
+      console.error("토큰 검증 실패: ", err);
+      res.status(401).json({ message: "토큰이 유효하지 않습니다." });
+    }
+  });
+}
+
+//관리자 리스트 목록 불러오기
+exports.assPosts = (req, res) => {
+  verifyToken(req, res, () => {
+    const token = req.decoded;
+
+    try {
+      const student_id = token.student_id; 
+
+      db.query(`SELECT * FROM gs_post WHERE gsuser_id = ${student_id} AND gspost_category = '관리자승인'`, (err, results, fields) => {
+        if (!err) {
+          res.status(200).json(results);
+        } else {
+          console.log('err : ' + err);
+          res.status(500).json({ message: '서버 내부 오류' });
+        }
+      });
+    } catch (err) {
+      console.error("토큰 검증 실패: ", err);
+      res.status(401).json({ message: "토큰이 유효하지 않습니다." });
+    }
+  });
+};
