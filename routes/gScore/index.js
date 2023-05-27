@@ -20,9 +20,13 @@ router.post('/update', controller.update);
 router.post('/insertInfo', controller.insertInfo);
 router.post('/updateInfo', controller.updateInfo);
 router.post('/updateMaxScore', controller.updateMaxScore);
+router.post('/detail', controller.detailscore);
+router.post('/allwrite',controller.all_write)
+
 
 router.delete('/deleteFile',controller.deleteFile);
 router.delete('/deletePost', controller.deletePost);
 router.delete('/deleteInfo', controller.deleteInfo);
+
 
 module.exports = router;
