@@ -576,7 +576,7 @@ function updateGraduationScore(userId, category, prevAcceptedScore, res) {
 
 //전체학생 학번, 이름정보  리턴
 exports.getAllUserInfo = (req, res) => {
-  db.query('SELECT student_id, name FROM user', function(err, rows, fields) {
+  db.query('SELECT student_id, name, grade FROM user', function(err, rows, fields) {
     if (!err) {
       res.status(200).send(rows); 
     } else {
@@ -678,3 +678,22 @@ exports.updateMaxScore = (req, res) => {
     }
   });
 };
+
+
+//졸업점수 상세보기
+exports.detailscore = (req, res) => {
+  const userId = req.body.userId; // 요청에서 사용자 ID 추출
+  const category = req.body.category; // 요청에서 카테고리 추출
+
+  // 데이터베이스 쿼리 실행
+  const query = "SELECT gspost_category, gspost_item, gspost_score FROM gs_post WHERE gsuser_id = ? AND gspost_pass = '승인' AND gspost_category = ?";
+  db.query(query, [userId, category], (err, rows) => {
+    if (!err) {
+      res.status(200).json(rows);
+    } else {
+      console.log('오류 : ' + err);
+      res.status(500).json({ message: '서버 내부 오류' });
+    }
+  });
+};
+
