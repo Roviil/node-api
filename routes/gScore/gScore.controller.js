@@ -695,3 +695,103 @@ exports.detailscore = (req, res) => {
   });
 };
 
+exports.all_write = (req, res) => {
+  verifyToken(req, res, () => {
+    const category = req.body.gspost_category;
+    const item = req.body.gspost_item;
+    const score = req.body.gspost_score;
+    const content = req.body.gspost_content;
+    const pass = req.body.gspost_pass;
+    const reason = req.body.gspost_reason;
+    const filecheck = req.body.gspost_file;
+
+    const token = req.decoded; // 헤더에서 토큰 추출
+
+    try {
+      const studentIds = req.body.gspost_student; // stuId 값을 받아옴
+
+      getDate((error, date) => {
+        if (error) {
+          console.error("날짜 가져오기 실패: ", error);
+          return res.status(500).send("서버 내부 오류");
+        } else {
+          const sql =
+            "INSERT INTO gs_post (gsuser_id,gspost_post_date,gspost_category,gspost_item,gspost_score,gspost_accepted_score,gspost_content,gspost_pass,gspost_reason,gspost_file) VALUES (?,?,?,?,?,?,?,?,?,?)";
+
+          const promises = studentIds.map((studentId) => {
+            const values = [
+              studentId,
+              date,
+              category,
+              item,
+              score,
+              score,
+              content,
+              pass,
+              reason,
+              filecheck,
+            ];
+
+            return new Promise((resolve, reject) => {
+              db.query(sql, values, (error, results) => {
+                if (error) {
+                  console.error("게시물 작성 실패: ", error);
+                  reject(error);
+                } else {
+                  console.log("게시물 작성 성공!");
+                  resolve(results);
+                }
+              });
+            });
+          });
+
+          Promise.all(promises)
+            .then((results) => {
+              // 졸업 인증 점수 업데이트
+              const updatePromises = studentIds.map((studentId) => {
+                return updategscore(studentId, category, score);
+              });
+
+              return Promise.all(updatePromises);
+            })
+            .then(() => {
+              return res.status(201).json({
+                message: "게시물이 성공적으로 작성되었습니다.",
+              });
+            })
+            .catch((error) => {
+              console.error("작성 실패: ", error);
+              return res.status(500).json({ message: "서버 내부 오류" });
+            });
+        }
+      });
+    } catch (err) {
+      console.error("토큰 검증 실패: ", err);
+      return res.status(401).json({ message: "토큰이 유효하지 않습니다." });
+    }
+  });
+};
+
+
+function updategscore(userId, category, score) {
+  return new Promise((resolve, reject) => {
+    const updateScoreSql =
+      "UPDATE user SET graduation_score = JSON_SET(graduation_score, ?, CAST(JSON_EXTRACT(graduation_score, ?) + ? AS UNSIGNED)) WHERE student_id = ?";
+    const updateScoreValues = [
+      `$."${category}"`,
+      `$."${category}"`,
+      score,
+      userId,
+    ];
+
+    db.query(updateScoreSql, updateScoreValues, (error, scoreResults) => {
+      if (error) {
+        console.error("graduation_score 업데이트 실패: ", error);
+        reject(error);
+      } else {
+        console.log("graduation_score 업데이트 성공!");
+        resolve(scoreResults);
+      }
+    });
+  });
+}
