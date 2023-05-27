@@ -89,7 +89,6 @@ exports.getUserInfo = (req, res) => {
 }
 
 
-
 //권한에 따른 작성글 로드
 exports.getPosts = (req, res) => {
   verifyToken(req, res, () => {
@@ -101,7 +100,7 @@ exports.getPosts = (req, res) => {
       db.query(`SELECT permission FROM user WHERE student_id = ${student_id}`, function (err, row, fields) {
         if (!err) {
           const permission = row[0].permission;
-          if (permission === 2) {
+          if (permission === 2 || permission === 3) {
             db.query('SELECT * FROM gs_post', function (err, rows, fields) {
               if (!err) {
                 res.status(200).json(rows);
@@ -128,7 +127,6 @@ exports.getPosts = (req, res) => {
     }
   });
 };
-
 
 
 //신청글 작성
