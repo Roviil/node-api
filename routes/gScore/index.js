@@ -13,6 +13,8 @@ router.get('/fileInfo',controller.getFileInfo);
 router.get('/download',controller.downloadFile);
 router.get('/writer',controller.getWriterInfo);
 router.get('/allUser',controller.getAllUserInfo);
+router.get('/getselUserInfo',controller.getselUserInfo);
+
 
 router.post('/write',controller.write);
 router.post('/upload',controller.upload);

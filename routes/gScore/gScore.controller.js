@@ -869,3 +869,27 @@ exports.assPosts = (req, res) => {
     }
   });
 };
+
+
+
+exports.getselUserInfo = (req, res) => {
+  verifyToken(req, res, () => {
+    const token = req.decoded 
+    const student_id = parseInt(req.query.student_id, 10);
+    try {
+
+      db.query(`SELECT student_id,graduation_score FROM user WHERE student_id = ${student_id}`, function (err, rows, fields) {
+        if (!err) {
+          res.status(200).json(rows[0])
+        } else {
+          console.log('Error: ' + err)
+          res.status(500).json({ message: '서버 내부 오류' })
+        }
+      })
+
+    } catch (err) {
+      console.error('토큰 검증 실패: ', err)
+      res.status(401).json({ message: '토큰이 유효하지 않습니다.' })
+    }
+  })
+}
