@@ -23,7 +23,6 @@ const getDate = (callback) => {
   });
 };
 
-
 exports.posts = (req, res) => {
   db.query('SELECT * FROM post', function (err, rows, fields) {
     if (!err) {
@@ -41,6 +40,18 @@ exports.postsget = (req, res) => {
   const query = 'SELECT * FROM post WHERE board_id = ? AND available = 1 ORDER BY post_id DESC;';
 
   db.query(query, board_id, (error, results, fields) => {
+    if (error) {
+      console.log(error);
+      res.status(500).send('Internal Server Error');
+    } else {
+      res.status(200).json(results);
+    }
+  });
+}
+
+exports.getReport = (req, res) => {
+  const query = 'SELECT * FROM post WHERE report >= 5 AND available = 1 ORDER BY post_id DESC;';
+  db.query(query, (error, results) => {
     if (error) {
       console.log(error);
       res.status(500).send('Internal Server Error');
