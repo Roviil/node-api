@@ -383,6 +383,17 @@ exports.reportPost = (req, res) => {
             console.error(updateError);
             res.status(500).json({ error: '서버 오류' });
           } else {
+            if(report_cnt === 5){
+              const c_message = "신고된 게시글이 존재합니다.\n";
+                db.query('SELECT fcm_token FROM user WHERE permission = 2', (error, results) => {
+                  if (error) {
+                    console.error("FCM 토큰 가져오기 실패: ", error);
+                    return;
+                  }
+                  const fcmTokens = results.map((row) => row.fcm_token);
+                  sendPushNotification(fcmTokens, c_message);
+                });
+            }
             res.status(200).json({ message: '글 신고 완료' });
           }
         });
