@@ -684,11 +684,10 @@ exports.updateMaxScore = (req, res) => {
 //졸업점수 상세보기
 exports.detailscore = (req, res) => {
   const userId = req.body.userId; // 요청에서 사용자 ID 추출
-  const category = req.body.category; // 요청에서 카테고리 추출
 
   // 데이터베이스 쿼리 실행
-  const query = "SELECT gspost_category, gspost_item, gspost_score FROM gs_post WHERE gsuser_id = ? AND gspost_pass = '승인' AND gspost_category = ?";
-  db.query(query, [userId, category], (err, rows) => {
+  const query = "SELECT gspost_category, gspost_item, gspost_score FROM gs_post WHERE gsuser_id = ? AND gspost_pass = '승인'";
+  db.query(query, [userId], (err, rows) => {
     if (!err) {
       res.status(200).json(rows);
     } else {
