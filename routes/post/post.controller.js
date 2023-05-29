@@ -352,6 +352,33 @@ exports.updatePost = (req, res) => {
   });
 };
 
+exports.reportPost = (req, res) => {
+    const post_id = req.params.post_id;
+    const selectSql = "SELECT report FROM post WHERE post_id = ?";
+    const selectValues = [post_id];
+    db.query(selectSql, selectValues, (selectError, selectResult) => {
+      if (selectError) {
+        console.error(selectError);
+        res.status(500).json({ error: '서버 오류' });
+      } else if (selectResult.length === 0) { // 신고 횟수가 null일 때
+        res.status(404).json({error: '글을 찾을 수 없습니다.'});
+        
+      } else { // 신고 횟수가 존재할 때, 1씩 더함.
+        const updateSql = "UPDATE post SET report = ? WHERE post_id = ?";
+        const report_cnt = selectResult[0].report + 1;
+        const updateValues = [report_cnt, post_id];
+        db.query(updateSql, updateValues, (updateError, updateResult) => {
+          if (updateError) {
+            console.error(updateError);
+            res.status(500).json({ error: '서버 오류' });
+          } else {
+            res.status(200).json({ message: '글 신고 완료' });
+          }
+        });
+      }
+    });
+};
+
 exports.deletePost = (req, res) => {
   verifyToken(req, res, () => {
     const post_id = req.params.post_id; // post_id 값 추출
