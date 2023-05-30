@@ -187,10 +187,12 @@ router.post('/upload', controller.upload);
 router.get('/loding', controller.loding);
 router.post('/sendverificationemail', controller.sendVerificationEmail)
 router.post('/adminsignup', controller.adminsignup);
+router.post("/grade", controller.usergrade);
 
 router.get("/required", subject.required); // 이수 과목
 router.get("/required/subject", subject.re_subject); // 이수 과목 subject 테이블 정보 불러오기
 router.post("/required/add", subject.add);
 router.delete("/required/delete", subject.delete);
+
 
 module.exports = router;

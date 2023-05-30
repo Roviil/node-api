@@ -68,7 +68,6 @@ exports.add = (req, res) => {
 };
 exports.delete = (req, res) => {
   var data = req.body;
-
   var pro_id = data.pro_id;
 
   const deleteSqlQuery = 'DELETE FROM professor WHERE pro_id = ?';
@@ -77,14 +76,15 @@ exports.delete = (req, res) => {
       if (result.affectedRows > 0) {
         res.send('Professor deleted successfully');
       } else {
-        res.send('No matching professor found for deletion');
+        res.status(500).send('No matching professor found for deletion');
       }
     } else {
       console.log('err: ' + err);
-      res.send(err);
+      res.status(500).send('Error occurred while deleting professor');
     }
   });
 };
+
 
 
 exports.modify = (req, res) => {
