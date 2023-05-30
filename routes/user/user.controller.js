@@ -185,6 +185,24 @@ exports.login = (req, res) => {
     });
   })
  }
+ exports.usergrade = (req, res) => {
+  verifyToken(req, res, () => {
+    const token = req.decoded// 헤더에서 토큰 추출
+    const student_id = token.student_id;
+    const grade = req.body.grade;
+
+    const query = 'UPDATE user SET grade = ? WHERE student_id = ?';
+
+    db.query(query, [grade, student_id], (error, results, fields) => {
+      if (error) {
+        console.log(error);
+        res.status(500).send('서버 내부 오류');
+        } else {
+        res.status(201).json({message: "학년 변경 성공"});
+        }
+    });
+  })
+ }
 
  exports.upload = (req, res) => {
   const multer = require('multer');
