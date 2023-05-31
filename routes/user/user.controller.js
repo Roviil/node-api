@@ -6,7 +6,7 @@ const db = require('../../server/db');
 
 const nodemailer = require('nodemailer');
 const randomstring = require('randomstring');
-const bcrypt = require('bcrypt')
+const crypto = require('crypto');
 //아무튼 테스트 성공임
 
 exports.user = (req, res)=>{
@@ -59,7 +59,7 @@ exports.login = (req, res) => {
   const password = req.query.password;
   const fcm_token = req.query.fcm_token;
 
-  const query = "SELECT password FROM user WHERE student_id = ?";
+  const query = "SELECT password, salt FROM user WHERE student_id = ?";
   db.query(query, student_id, (error, results, fields) => {
     if (error) {
       console.error(error);
@@ -67,8 +67,8 @@ exports.login = (req, res) => {
     } else if (results.length === 0) {
       res.status(401).send('사용자를 찾을 수 없음');
     } else {
-      const encodedPassword = bcrypt.compareSync(password, results[0].password);
-      if (encodedPassword) {
+      const hashedPassword = crypto.pbkdf2Sync(password, results[0].salt, 10000, 64, 'sha256').toString('hex');
+      if (hashedPassword === results[0].password) {
         // FCM 토큰 업데이트
         const updateTokenQuery = "UPDATE user SET fcm_token = ? WHERE student_id = ?";
         db.query(updateTokenQuery, [fcm_token, student_id], (tokenError, tokenResults, tokenFields) => {
@@ -130,10 +130,11 @@ exports.login = (req, res) => {
 
            if (_verificationCode === savedVerificationCode) {
              const { student_id, password, name, email, grade, fcm_token } = req.body;
-             const encryptedPassowrd = bcrypt.hashSync(password, 10);
-             const query = 'INSERT INTO user (student_id, password, name, email, grade, permission, fcm_token) VALUES (?, ?, ?, ?, ?, 1, ?)';
+             const salt = crypto.randomBytes(16).toString('hex');
+             const hashedPassword = crypto.pbkdf2Sync(password, salt, 10000, 64, 'sha256').toString('hex');
+             const query = 'INSERT INTO user (student_id, password, name, email, grade, permission, fcm_token, salt) VALUES (?, ?, ?, ?, ?, 1, ?, ?)';
 
-             db.query(query, [student_id, encryptedPassowrd, name, email, grade, fcm_token], (error, results, fields) => {
+             db.query(query, [student_id, hashedPassword, name, email, grade, fcm_token, salt], (error, results, fields) => {
                if (error) {
                  console.error(error);
                  res.status(500).send('내부 서버 오류');
@@ -150,10 +151,12 @@ exports.login = (req, res) => {
          exports.adminsignup = (req, res) => {
 
              const { student_id, password, name, email } = req.body;
-             const encryptedPassowrd = bcrypt.hashSync(password, 10);
-             const query = 'INSERT INTO user (student_id, password, name, email, grade, permission, fcm_token) VALUES (?, ?, ?, ?, 99, 3, ?)';
+             const salt = crypto.randomBytes(16).toString('hex');
+             const hashedPassword = crypto.pbkdf2Sync(password, salt, 10000, 64, 'sha256').toString('hex');
 
-             db.query(query, [student_id, encryptedPassowrd, name, email, fcm_token], (error, results, fields) => {
+             const query = 'INSERT INTO user (student_id, password, name, email, grade, permission, fcm_token, salt) VALUES (?, ?, ?, ?, 99, 3, ?, ?)';
+
+             db.query(query, [student_id, hashedPassword, name, email, fcm_token, salt], (error, results, fields) => {
                if (error) {
                  console.error(error);
                  res.status(500).send('내부 서버 오류');
@@ -171,11 +174,13 @@ exports.login = (req, res) => {
     const token = req.decoded// 헤더에서 토큰 추출
     const student_id = token.student_id;
     const password = req.body.password;
-    const encryptedPassowrd = bcrypt.hashSync(password, 10);
+    const salt = crypto.randomBytes(16).toString('hex');
+    const hashedPassword = crypto.pbkdf2Sync(password, salt, 10000, 64, 'sha256').toString('hex');
 
-    const query = 'UPDATE user SET password = ? WHERE student_id = ?';
 
-    db.query(query, [encryptedPassowrd, student_id], (error, results, fields) => {
+    const query = 'UPDATE user SET password = ?, salt = ? WHERE student_id = ?';
+
+    db.query(query, [hashedPassword, salt, student_id], (error, results, fields) => {
       if (error) {
         console.log(error);
         res.status(500).send('서버 내부 오류');
