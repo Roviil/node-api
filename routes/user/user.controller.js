@@ -30,6 +30,7 @@ exports.info = (req, res) => {
       console.log(error);
       res.status(500).send('Internal Server Error');
     } else {
+      console.log("학생 정보 조회 성공 : ", student_id)
       res.status(201).json(results);
     }
   });
@@ -48,6 +49,7 @@ exports.infotoken = (req, res) => {
         console.log(error);
         res.status(500).send('Internal Server Error');
       } else {
+        console.log("학생 정보 조회 성공 : ", student_id)
         res.status(201).json(results);
       }
     });
@@ -83,6 +85,7 @@ exports.login = (req, res) => {
               expiresIn: '365d',
               issuer: student_id
             });
+            console.log("로그인 성공 : ", student_id)
             res.status(200).json({ message: '로그인 성공', token: token });
           }
         });
@@ -116,6 +119,7 @@ exports.sendVerificationEmail = (req, res) => {
       console.error(error);
       res.status(500).send('이메일 전송 중 오류가 발생했습니다.');
     } else {
+      console.log("이메일 전송 성공: ", email)
       res.status(200).json({ verificationCode });
     }
   });
@@ -151,7 +155,7 @@ exports.sendVerificationPassword = (req, res) => {
           console.error(error);
           res.status(500).send('내부 서버 오류');
         } else {
-          // 회원가입이 성공한 경우, 응답을 보내거나 다른 처리를 수행
+          console.log("비밀번호 초기화 메일 전송 성공 : ", email)
           res.status(200).send('비밀번호 초기화가 완료되었습니다.');
         }
 
@@ -179,6 +183,7 @@ exports.signup = (req, res) => {
         res.status(500).send('내부 서버 오류');
       } else {
         // 회원가입이 성공한 경우, 응답을 보내거나 다른 처리를 수행
+        console.log("회원가입 성공 : ", student_id);
         res.status(200).send('회원가입이 완료되었습니다.');
       }
     });
@@ -193,14 +198,15 @@ exports.adminsignup = (req, res) => {
   const salt = crypto.randomBytes(16).toString('hex');
   const hashedPassword = crypto.pbkdf2Sync(password, salt, 10000, 64, 'sha256').toString('hex');
 
-  const query = 'INSERT INTO user (student_id, password, name, email, grade, permission, fcm_token, salt) VALUES (?, ?, ?, ?, 99, 3, ?, ?)';
+  const query = 'INSERT INTO user (student_id, password, name, email, grade, permission, salt) VALUES (?, ?, ?, ?, 99, 3, ?)';
 
-  db.query(query, [student_id, hashedPassword, name, email, fcm_token, salt], (error, results, fields) => {
+  db.query(query, [student_id, hashedPassword, name, email, salt], (error, results, fields) => {
     if (error) {
       console.error(error);
       res.status(500).send('내부 서버 오류');
     } else {
       // 회원가입이 성공한 경우, 응답을 보내거나 다른 처리를 수행
+      console.log("회원가입 성공 : ", student_id);
       res.status(200).send('회원가입이 완료되었습니다.');
     }
   });
@@ -224,6 +230,7 @@ exports.userupdate = (req, res) => {
         console.log(error);
         res.status(500).send('서버 내부 오류');
       } else {
+        console.log("비밀번호 변경 성공 : ", student_id);
         res.status(201).json({ message: "비밀번호 변경 성공!" });
       }
     });
@@ -273,6 +280,7 @@ exports.upload = (req, res) => {
         res.status(500).send('서버 내부 오류');
       } else {
         // 정상적으로 파일 업로드 완료시
+        console.log("이미지 업로드 성공");
         res.status(201).send('파일 업로드가 완료되었습니다.');
       }
     });
