@@ -9,30 +9,30 @@ const randomstring = require('randomstring');
 const crypto = require('crypto');
 //아무튼 테스트 성공임
 
-exports.user = (req, res)=>{
-        db.query('SELECT * FROM user', function(err, rows, fields) {
-          if(!err) {
-            res.send(rows); // response send rows
-          } else {
-            console.log('err : ' + err);
-            res.send(err); // response send err
-          }
-        });
-      
+exports.user = (req, res) => {
+  db.query('SELECT * FROM user', function (err, rows, fields) {
+    if (!err) {
+      res.send(rows); // response send rows
+    } else {
+      console.log('err : ' + err);
+      res.send(err); // response send err
+    }
+  });
+
 }
 
 exports.info = (req, res) => {
-    const student_id = req.query.student_id;
-    const query = 'SELECT * FROM user WHERE student_id = ?';
+  const student_id = req.query.student_id;
+  const query = 'SELECT * FROM user WHERE student_id = ?';
 
-     db.query(query, student_id, (error, results, fields) => {
-        if (error) {
-        console.log(error);
-        res.status(500).send('Internal Server Error');
-        } else {
-        res.status(201).json(results);
-        }
-    });
+  db.query(query, student_id, (error, results, fields) => {
+    if (error) {
+      console.log(error);
+      res.status(500).send('Internal Server Error');
+    } else {
+      res.status(201).json(results);
+    }
+  });
 
 }
 
@@ -40,16 +40,16 @@ exports.infotoken = (req, res) => {
   verifyToken(req, res, () => {
     const token = req.decoded// 헤더에서 토큰 추출
     const student_id = token.student_id;
- 
+
     const query = 'SELECT * FROM user WHERE student_id = ?';
 
     db.query(query, student_id, (error, results, fields) => {
-        if (error) {
+      if (error) {
         console.log(error);
         res.status(500).send('Internal Server Error');
-        } else {
+      } else {
         res.status(201).json(results);
-        }
+      }
     });
   })
 }
@@ -95,81 +95,120 @@ exports.login = (req, res) => {
 
 
 
-    exports.sendVerificationEmail = (req, res) => {
-          const { email } = req.body;
-          const verificationCode = randomstring.generate(6); // 6자리의 인증번호 생성
-          const transporter = nodemailer.createTransport({
-            service: 'Gmail',
-            auth: {
-              user: process.env.SMTP_EMAIL,
-              pass: process.env.SMTP_PASSWORD,
-            },
-          });
-          const mailOptions = {
-            from: process.env.SMTP_EMAIL,
-            to: email,
-            subject: '회원가입 이메일 인증',
-            text: `회원가입을 위한 인증번호는 ${verificationCode}입니다.`,
-          };
-          transporter.sendMail(mailOptions, (error, info) => {
-            if (error) {
-              console.error(error);
-              res.status(500).send('이메일 전송 중 오류가 발생했습니다.');
-            } else {
-              res.status(200).json({ verificationCode });
-            }
-          });
-        };
+exports.sendVerificationEmail = (req, res) => {
+  const { email } = req.body;
+  const verificationCode = randomstring.generate(6); // 6자리의 인증번호 생성
+  const transporter = nodemailer.createTransport({
+    service: 'Gmail',
+    auth: {
+      user: process.env.SMTP_EMAIL,
+      pass: process.env.SMTP_PASSWORD,
+    },
+  });
+  const mailOptions = {
+    from: process.env.SMTP_EMAIL,
+    to: email,
+    subject: '회원가입 이메일 인증',
+    text: `회원가입을 위한 인증번호는 ${verificationCode}입니다.`,
+  };
+  transporter.sendMail(mailOptions, (error, info) => {
+    if (error) {
+      console.error(error);
+      res.status(500).send('이메일 전송 중 오류가 발생했습니다.');
+    } else {
+      res.status(200).json({ verificationCode });
+    }
+  });
+};
+
+exports.sendVerificationPassword = (req, res) => {
+  const { email } = req.body;
+  const student_id = email.split('@')[0];
+  const verificationCode = randomstring.generate(6); // 6자리의 인증번호 생성
+  const transporter = nodemailer.createTransport({
+    service: 'Gmail',
+    auth: {
+      user: process.env.SMTP_EMAIL,
+      pass: process.env.SMTP_PASSWORD,
+    },
+  });
+  const mailOptions = {
+    from: process.env.SMTP_EMAIL,
+    to: email,
+    subject: '임시비밀번호 전송',
+    text: `로그인을 위한 임시비밀번호는 ${verificationCode}입니다.`,
+  };
+  transporter.sendMail(mailOptions, (error, info) => {
+    if (error) {
+      console.error(error);
+      res.status(500).send('이메일 전송 중 오류가 발생했습니다.');
+    } else {
+      const salt = crypto.randomBytes(16).toString('hex');
+      const hashedPassword = crypto.pbkdf2Sync(verificationCode, salt, 10000, 64, 'sha256').toString('hex');
+      const query = 'UPDATE user SET password=?, salt=? WHERE student_id=?';
+      db.query(query, [hashedPassword, salt, student_id], (error, results, fields) => {
+        if (error) {
+          console.error(error);
+          res.status(500).send('내부 서버 오류');
+        } else {
+          // 회원가입이 성공한 경우, 응답을 보내거나 다른 처리를 수행
+          res.status(200).send('비밀번호 초기화가 완료되었습니다.');
+        }
+
+      });
+    }
+  });
+};
 
 
 
 
-        exports.signup = (req, res) => {
-          const { verificationCode, _verificationCode } = req.body;
-            const savedVerificationCode = verificationCode;
+exports.signup = (req, res) => {
+  const { verificationCode, _verificationCode } = req.body;
+  const savedVerificationCode = verificationCode;
 
-           if (_verificationCode === savedVerificationCode) {
-             const { student_id, password, name, email, grade, fcm_token } = req.body;
-             const salt = crypto.randomBytes(16).toString('hex');
-             const hashedPassword = crypto.pbkdf2Sync(password, salt, 10000, 64, 'sha256').toString('hex');
-             const query = 'INSERT INTO user (student_id, password, name, email, grade, permission, fcm_token, salt) VALUES (?, ?, ?, ?, ?, 1, ?, ?)';
+  if (_verificationCode === savedVerificationCode) {
+    const { student_id, password, name, email, grade, fcm_token } = req.body;
+    const salt = crypto.randomBytes(16).toString('hex');
+    const hashedPassword = crypto.pbkdf2Sync(password, salt, 10000, 64, 'sha256').toString('hex');
+    const query = 'INSERT INTO user (student_id, password, name, email, grade, permission, fcm_token, salt) VALUES (?, ?, ?, ?, ?, 1, ?, ?)';
 
-             db.query(query, [student_id, hashedPassword, name, email, grade, fcm_token, salt], (error, results, fields) => {
-               if (error) {
-                 console.error(error);
-                 res.status(500).send('내부 서버 오류');
-               } else {
-                 // 회원가입이 성공한 경우, 응답을 보내거나 다른 처리를 수행
-                 res.status(200).send('회원가입이 완료되었습니다.');
-               }
-             });
-           } else {
-             // 인증번호가 일치하지 않는 경우, 오류 응답
-             res.status(401).send('인증번호가 일치하지 않습니다.');
-           }
-         };
-         exports.adminsignup = (req, res) => {
+    db.query(query, [student_id, hashedPassword, name, email, grade, fcm_token, salt], (error, results, fields) => {
+      if (error) {
+        console.error(error);
+        res.status(500).send('내부 서버 오류');
+      } else {
+        // 회원가입이 성공한 경우, 응답을 보내거나 다른 처리를 수행
+        res.status(200).send('회원가입이 완료되었습니다.');
+      }
+    });
+  } else {
+    // 인증번호가 일치하지 않는 경우, 오류 응답
+    res.status(401).send('인증번호가 일치하지 않습니다.');
+  }
+};
+exports.adminsignup = (req, res) => {
 
-             const { student_id, password, name, email } = req.body;
-             const salt = crypto.randomBytes(16).toString('hex');
-             const hashedPassword = crypto.pbkdf2Sync(password, salt, 10000, 64, 'sha256').toString('hex');
+  const { student_id, password, name, email } = req.body;
+  const salt = crypto.randomBytes(16).toString('hex');
+  const hashedPassword = crypto.pbkdf2Sync(password, salt, 10000, 64, 'sha256').toString('hex');
 
-             const query = 'INSERT INTO user (student_id, password, name, email, grade, permission, fcm_token, salt) VALUES (?, ?, ?, ?, 99, 3, ?, ?)';
+  const query = 'INSERT INTO user (student_id, password, name, email, grade, permission, fcm_token, salt) VALUES (?, ?, ?, ?, 99, 3, ?, ?)';
 
-             db.query(query, [student_id, hashedPassword, name, email, fcm_token, salt], (error, results, fields) => {
-               if (error) {
-                 console.error(error);
-                 res.status(500).send('내부 서버 오류');
-               } else {
-                 // 회원가입이 성공한 경우, 응답을 보내거나 다른 처리를 수행
-                 res.status(200).send('회원가입이 완료되었습니다.');
-               }
-             });
-           
-         };
+  db.query(query, [student_id, hashedPassword, name, email, fcm_token, salt], (error, results, fields) => {
+    if (error) {
+      console.error(error);
+      res.status(500).send('내부 서버 오류');
+    } else {
+      // 회원가입이 성공한 경우, 응답을 보내거나 다른 처리를 수행
+      res.status(200).send('회원가입이 완료되었습니다.');
+    }
+  });
+
+};
 
 
- exports.userupdate = (req, res) => {
+exports.userupdate = (req, res) => {
   verifyToken(req, res, () => {
     const token = req.decoded// 헤더에서 토큰 추출
     const student_id = token.student_id;
@@ -184,13 +223,13 @@ exports.login = (req, res) => {
       if (error) {
         console.log(error);
         res.status(500).send('서버 내부 오류');
-        } else {
-        res.status(201).json({message: "비밀번호 변경 성공!"});
-        }
+      } else {
+        res.status(201).json({ message: "비밀번호 변경 성공!" });
+      }
     });
   })
- }
- exports.usergrade = (req, res) => {
+}
+exports.usergrade = (req, res) => {
   verifyToken(req, res, () => {
     const token = req.decoded// 헤더에서 토큰 추출
     const student_id = token.student_id;
@@ -202,28 +241,28 @@ exports.login = (req, res) => {
       if (error) {
         console.log(error);
         res.status(500).send('서버 내부 오류');
-        } else {
-        res.status(201).json({message: "학년 변경 성공"});
-        }
+      } else {
+        res.status(201).json({ message: "학년 변경 성공" });
+      }
     });
   })
- }
+}
 
- exports.upload = (req, res) => {
+exports.upload = (req, res) => {
   const multer = require('multer');
   const storage = multer.diskStorage({
-    destination: function(req, file, cb) {
+    destination: function (req, file, cb) {
       cb(null, 'routes/image/'); // 파일 저장 경로
     },
-    filename: function(req, file, cb) {
+    filename: function (req, file, cb) {
       cb(null, file.originalname); // 파일 이름 설정
     }
   });
- 
+
   const upload = multer({ storage: storage }).single('image');
 
   try {
-    upload(req, res, function(err) {
+    upload(req, res, function (err) {
       if (err instanceof multer.MulterError) {
         // 파일 업로드 중 에러 발생시
         console.log(err);
