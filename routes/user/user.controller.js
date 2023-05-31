@@ -59,7 +59,7 @@ exports.infotoken = (req, res) => {
 exports.login = (req, res) => {
     const student_id = req.body.student_id;
     const password = req.body.password;
-    const fcm_token = req.body.fcmToken;
+    const fcmToken = req.body.fcmToken;
     const query = "SELECT password, salt FROM user WHERE student_id = ?";
     db.query(query, student_id, (error, results, fields) => {
       if (error) {
@@ -72,7 +72,7 @@ exports.login = (req, res) => {
         if (hashedPassword === results[0].password) {
           // FCM 토큰 업데이트
           const updateTokenQuery = "UPDATE user SET fcm_token = ? WHERE student_id = ?";
-          db.query(updateTokenQuery, [fcm_token, student_id], (tokenError, tokenResults, tokenFields) => {
+          db.query(updateTokenQuery, [fcmToken, student_id], (tokenError, tokenResults, tokenFields) => {
             if (tokenError) {
               console.error(tokenError);
               res.status(500).send('FCM 토큰 업데이트 중 오류가 발생했습니다.');
