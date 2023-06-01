@@ -186,6 +186,7 @@ router.put('/password', controller.userupdate);
 router.post('/upload', controller.upload);
 router.get('/loding', controller.loding);
 router.post('/sendverificationemail', controller.sendVerificationEmail)
+router.post('/sendverificationpassword', controller.sendVerificationPassword)
 router.post('/adminsignup', controller.adminsignup);
 router.post("/grade", controller.usergrade);
 
