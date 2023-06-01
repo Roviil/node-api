@@ -518,7 +518,7 @@ exports.deletePost = (req, res) => {
         res.status(500).json({ message: "서버 내부 오류" });
       } else {
         const permission = permissionResults[0].permission;
-        db.query(`SELECT gsuser_id, gspost_pass, gspost_category, gspost_accepted_score FROM gs_post WHERE gspost_id = ${postId}`, (err, postResults) => {
+        db.query(`SELECT gsuser_id, gspost_pass, gspost_category, gspost_item, gspost_accepted_score FROM gs_post WHERE gspost_id = ${postId}`, (err, postResults) => {
           if (err) {
             console.error("게시물 조회 실패: ", err);
             res.status(500).json({ message: "서버 내부 오류" });
@@ -527,6 +527,7 @@ exports.deletePost = (req, res) => {
           } else {
             const postPass = postResults[0].gspost_pass;
             const category = postResults[0].gspost_category;
+            const postItem = postResults[0].gspost_item;
             const prevAcceptedScore = postResults[0].gspost_accepted_score;
             const postuserid = postResults[0].gsuser_id;
   
@@ -539,7 +540,7 @@ exports.deletePost = (req, res) => {
                 } else if (deleteResults.affectedRows === 0) {
                   res.status(404).json({ message: "해당 게시물을 찾을 수 없습니다." });
                 } else {
-                  console.log("게시물 삭제 성공!  " , postId , " 게시글  " ,student_id,"이 삭제완료");
+                  console.log("게시물 삭제 성공!  " , postId , "번 게시글  " ,student_id,"이 삭제완료","\n작성자:",postuserid," 항목명:",postItem, " 승인여부:",postPass," 승인점수:",prevAcceptedScore);
                   if(category != "캡스톤디자인"){
                   if (postPass === "승인") {
                     // 승인된 게시물인 경우 graduation_score 업데이트
