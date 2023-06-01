@@ -397,8 +397,8 @@ exports.update = (req, res) => {
                 // 수정할 게시글이 해당 사용자에게 속해있지 않은 경우
                 res.status(403).json({ message: "해당 게시물을 수정할 권한이 없습니다." });
               } else {
-                console.log("게시물 수정 성공!");
-                
+                console.log("게시물 수정 성공!  ",postId," 게시글 ",student_id,"이 수정 완료");
+                if(category != "캡스톤디자인"){
                 if (prevPass === "승인" && (pass === "반려" || pass === "대기")) {
                   // 승인에서 반려인 경우 카테고리의 총점에서 prevAcceptedScore 값을 빼줍니다.
                   const updateScoreSql = "UPDATE user SET graduation_score = JSON_SET(graduation_score, ?, CAST(JSON_EXTRACT(graduation_score, ?) - ? AS UNSIGNED)) WHERE student_id = ?";
@@ -484,7 +484,10 @@ exports.update = (req, res) => {
                 else{
                   res.status(200).json({ message: "게시물이 성공적으로 수정되었습니다." });
                 }
-
+              }
+              else{
+                res.status(200).json({ message: "게시물이 성공적으로 수정되었습니다." });
+              }
               }
             });
           }
@@ -536,13 +539,18 @@ exports.deletePost = (req, res) => {
                 } else if (deleteResults.affectedRows === 0) {
                   res.status(404).json({ message: "해당 게시물을 찾을 수 없습니다." });
                 } else {
-                  console.log("게시물 삭제 성공!");
+                  console.log("게시물 삭제 성공!  " , postId , " 게시글  " ,student_id,"이 삭제완료");
+                  if(category != "캡스톤디자인"){
                   if (postPass === "승인") {
                     // 승인된 게시물인 경우 graduation_score 업데이트
                     updateGraduationScore(postuserid, category, prevAcceptedScore, res);
+                    res.status(200).json({ message: "게시물이 성공적으로 삭제되었습니다." });
                   } else {
                     res.status(200).json({ message: "게시물이 성공적으로 삭제되었습니다." });
                   }
+                }else{
+                  res.status(200).json({ message: "게시물이 성공적으로 삭제되었습니다." });
+                }
                 }
               });
             } else {
@@ -877,7 +885,7 @@ exports.getselUserInfo = (req, res) => {
     const student_id = parseInt(req.query.student_id, 10);
     try {
 
-      db.query(`SELECT student_id,graduation_score FROM user WHERE student_id = ${student_id}`, function (err, rows, fields) {
+      db.query(`SELECT student_id,name,graduation_score FROM user WHERE student_id = ${student_id}`, function (err, rows, fields) {
         if (!err) {
           res.status(200).json(rows[0])
         } else {

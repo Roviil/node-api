@@ -6,33 +6,34 @@ const db = require('../../server/db');
 
 const nodemailer = require('nodemailer');
 const randomstring = require('randomstring');
-const bcrypt = require('bcrypt')
+const crypto = require('crypto');
 //아무튼 테스트 성공임
 
-exports.user = (req, res)=>{
-        db.query('SELECT * FROM user', function(err, rows, fields) {
-          if(!err) {
-            res.send(rows); // response send rows
-          } else {
-            console.log('err : ' + err);
-            res.send(err); // response send err
-          }
-        });
-      
+exports.user = (req, res) => {
+  db.query('SELECT * FROM user', function (err, rows, fields) {
+    if (!err) {
+      res.send(rows); // response send rows
+    } else {
+      console.log('err : ' + err);
+      res.send(err); // response send err
+    }
+  });
+
 }
 
 exports.info = (req, res) => {
-    const student_id = req.query.student_id;
-    const query = 'SELECT * FROM user WHERE student_id = ?';
+  const student_id = req.query.student_id;
+  const query = 'SELECT * FROM user WHERE student_id = ?';
 
-     db.query(query, student_id, (error, results, fields) => {
-        if (error) {
-        console.log(error);
-        res.status(500).send('Internal Server Error');
-        } else {
-        res.status(201).json(results);
-        }
-    });
+  db.query(query, student_id, (error, results, fields) => {
+    if (error) {
+      console.log(error);
+      res.status(500).send('Internal Server Error');
+    } else {
+      console.log("학생 정보 조회 성공 : ", student_id)
+      res.status(201).json(results);
+    }
+  });
 
 }
 
@@ -40,152 +41,201 @@ exports.infotoken = (req, res) => {
   verifyToken(req, res, () => {
     const token = req.decoded// 헤더에서 토큰 추출
     const student_id = token.student_id;
- 
+
     const query = 'SELECT * FROM user WHERE student_id = ?';
 
     db.query(query, student_id, (error, results, fields) => {
-        if (error) {
+      if (error) {
         console.log(error);
         res.status(500).send('Internal Server Error');
-        } else {
+      } else {
+        console.log("학생 정보 조회 성공 : ", student_id)
         res.status(201).json(results);
-        }
+      }
     });
   })
 }
 
 exports.login = (req, res) => {
-  const student_id = req.query.student_id;
-  const password = req.query.password;
-  const fcm_token = req.query.fcm_token;
+    const student_id = req.body.student_id;
+    const password = req.body.password;
+    const fcmToken = req.body.fcmToken;
+    const query = "SELECT password, salt FROM user WHERE student_id = ?";
+    db.query(query, student_id, (error, results, fields) => {
+      if (error) {
+        console.error(error);
+        res.status(500).send('내부 서버 오류');
+      } else if (results.length === 0) {
+        res.status(401).send('사용자를 찾을 수 없음');
+      } else {
+        const hashedPassword = crypto.pbkdf2Sync(password, results[0].salt, 10000, 64, 'sha256').toString('hex');
+        if (hashedPassword === results[0].password) {
+          // FCM 토큰 업데이트
+          const updateTokenQuery = "UPDATE user SET fcm_token = ? WHERE student_id = ?";
+          db.query(updateTokenQuery, [fcmToken, student_id], (tokenError, tokenResults, tokenFields) => {
+            if (tokenError) {
+              console.error(tokenError);
+              res.status(500).send('FCM 토큰 업데이트 중 오류가 발생했습니다.');
+            } else {
+              // JWT 토큰 생성
+              const token = jwt.sign({
+                student_id
+              }, process.env.JWT_SECRET, {
+                expiresIn: '365d',
+                issuer: student_id
+              });
+              console.log("로그인 성공 : ", student_id)
+              res.status(200).json({ message: '로그인 성공', token: token });
+            }
+          });
+        } else {
+          res.status(401).send('잘못된 비밀번호');
+        }
+      }
+    });
+};
 
-  const query = "SELECT password FROM user WHERE student_id = ?";
-  db.query(query, student_id, (error, results, fields) => {
+
+
+exports.sendVerificationEmail = (req, res) => {
+  const { email } = req.body;
+  const verificationCode = randomstring.generate(6); // 6자리의 인증번호 생성
+  const transporter = nodemailer.createTransport({
+    service: 'Gmail',
+    auth: {
+      user: process.env.SMTP_EMAIL,
+      pass: process.env.SMTP_PASSWORD,
+    },
+  });
+  const mailOptions = {
+    from: process.env.SMTP_EMAIL,
+    to: email,
+    subject: '회원가입 이메일 인증',
+    text: `회원가입을 위한 인증번호는 ${verificationCode}입니다.`,
+  };
+  transporter.sendMail(mailOptions, (error, info) => {
     if (error) {
       console.error(error);
-      res.status(500).send('내부 서버 오류');
-    } else if (results.length === 0) {
-      res.status(401).send('사용자를 찾을 수 없음');
+      res.status(500).send('이메일 전송 중 오류가 발생했습니다.');
     } else {
-      const encodedPassword = bcrypt.compareSync(password, results[0].password);
-      if (encodedPassword) {
-        // FCM 토큰 업데이트
-        const updateTokenQuery = "UPDATE user SET fcm_token = ? WHERE student_id = ?";
-        db.query(updateTokenQuery, [fcm_token, student_id], (tokenError, tokenResults, tokenFields) => {
-          if (tokenError) {
-            console.error(tokenError);
-            res.status(500).send('FCM 토큰 업데이트 중 오류가 발생했습니다.');
-          } else {
-            // JWT 토큰 생성
-            const token = jwt.sign({
-              student_id
-            }, process.env.JWT_SECRET, {
-              expiresIn: '365d',
-              issuer: student_id
-            });
-            res.status(200).json({ message: '로그인 성공', token: token });
-          }
-        });
-      } else {
-        res.status(401).send('잘못된 비밀번호');
-      }
+      console.log("이메일 전송 성공: ", email)
+      res.status(200).json({ verificationCode });
+    }
+  });
+};
+
+exports.sendVerificationPassword = (req, res) => {
+  const { email } = req.body;
+  const student_id = email.split('@')[0];
+  const verificationCode = randomstring.generate(6); // 6자리의 인증번호 생성
+  const transporter = nodemailer.createTransport({
+    service: 'Gmail',
+    auth: {
+      user: process.env.SMTP_EMAIL,
+      pass: process.env.SMTP_PASSWORD,
+    },
+  });
+  const mailOptions = {
+    from: process.env.SMTP_EMAIL,
+    to: email,
+    subject: '임시비밀번호 전송',
+    text: `로그인을 위한 임시비밀번호는 ${verificationCode}입니다.`,
+  };
+  transporter.sendMail(mailOptions, (error, info) => {
+    if (error) {
+      console.error(error);
+      res.status(500).send('이메일 전송 중 오류가 발생했습니다.');
+    } else {
+      const salt = crypto.randomBytes(16).toString('hex');
+      const hashedPassword = crypto.pbkdf2Sync(verificationCode, salt, 10000, 64, 'sha256').toString('hex');
+      const query = 'UPDATE user SET password=?, salt=? WHERE student_id=?';
+      db.query(query, [hashedPassword, salt, student_id], (error, results, fields) => {
+        if (error) {
+          console.error(error);
+          res.status(500).send('내부 서버 오류');
+        } else {
+          console.log("비밀번호 초기화 메일 전송 성공 : ", email)
+          res.status(200).send('비밀번호 초기화가 완료되었습니다.');
+        }
+
+      });
     }
   });
 };
 
 
 
-    exports.sendVerificationEmail = (req, res) => {
-          const { email } = req.body;
-          const verificationCode = randomstring.generate(6); // 6자리의 인증번호 생성
-          const transporter = nodemailer.createTransport({
-            service: 'Gmail',
-            auth: {
-              user: process.env.SMTP_EMAIL,
-              pass: process.env.SMTP_PASSWORD,
-            },
-          });
-          const mailOptions = {
-            from: process.env.SMTP_EMAIL,
-            to: email,
-            subject: '회원가입 이메일 인증',
-            text: `회원가입을 위한 인증번호는 ${verificationCode}입니다.`,
-          };
-          transporter.sendMail(mailOptions, (error, info) => {
-            if (error) {
-              console.error(error);
-              res.status(500).send('이메일 전송 중 오류가 발생했습니다.');
-            } else {
-              res.status(200).json({ verificationCode });
-            }
-          });
-        };
+
+exports.signup = (req, res) => {
+  const { verificationCode, _verificationCode } = req.body;
+  const savedVerificationCode = verificationCode;
+
+  if (_verificationCode === savedVerificationCode) {
+    const { student_id, password, name, email, grade, fcm_token } = req.body;
+    const salt = crypto.randomBytes(16).toString('hex');
+    const hashedPassword = crypto.pbkdf2Sync(password, salt, 10000, 64, 'sha256').toString('hex');
+    const query = 'INSERT INTO user (student_id, password, name, email, grade, permission, fcm_token, salt) VALUES (?, ?, ?, ?, ?, 1, ?, ?)';
+
+    db.query(query, [student_id, hashedPassword, name, email, grade, fcm_token, salt], (error, results, fields) => {
+      if (error) {
+        console.error(error);
+        res.status(500).send('내부 서버 오류');
+      } else {
+        // 회원가입이 성공한 경우, 응답을 보내거나 다른 처리를 수행
+        console.log("회원가입 성공 : ", student_id);
+        res.status(200).send('회원가입이 완료되었습니다.');
+      }
+    });
+  } else {
+    // 인증번호가 일치하지 않는 경우, 오류 응답
+    res.status(401).send('인증번호가 일치하지 않습니다.');
+  }
+};
+exports.adminsignup = (req, res) => {
+
+  const { student_id, password, name, email } = req.body;
+  const salt = crypto.randomBytes(16).toString('hex');
+  const hashedPassword = crypto.pbkdf2Sync(password, salt, 10000, 64, 'sha256').toString('hex');
+
+  const query = 'INSERT INTO user (student_id, password, name, email, grade, permission, salt) VALUES (?, ?, ?, ?, 99, 3, ?)';
+
+  db.query(query, [student_id, hashedPassword, name, email, salt], (error, results, fields) => {
+    if (error) {
+      console.error(error);
+      res.status(500).send('내부 서버 오류');
+    } else {
+      // 회원가입이 성공한 경우, 응답을 보내거나 다른 처리를 수행
+      console.log("회원가입 성공 : ", student_id);
+      res.status(200).send('회원가입이 완료되었습니다.');
+    }
+  });
+
+};
 
 
-
-
-        exports.signup = (req, res) => {
-          const { verificationCode, _verificationCode } = req.body;
-            const savedVerificationCode = verificationCode;
-
-           if (_verificationCode === savedVerificationCode) {
-             const { student_id, password, name, email, grade, fcm_token } = req.body;
-             const encryptedPassowrd = bcrypt.hashSync(password, 10);
-             const query = 'INSERT INTO user (student_id, password, name, email, grade, permission, fcm_token) VALUES (?, ?, ?, ?, ?, 1, ?)';
-
-             db.query(query, [student_id, encryptedPassowrd, name, email, grade, fcm_token], (error, results, fields) => {
-               if (error) {
-                 console.error(error);
-                 res.status(500).send('내부 서버 오류');
-               } else {
-                 // 회원가입이 성공한 경우, 응답을 보내거나 다른 처리를 수행
-                 res.status(200).send('회원가입이 완료되었습니다.');
-               }
-             });
-           } else {
-             // 인증번호가 일치하지 않는 경우, 오류 응답
-             res.status(401).send('인증번호가 일치하지 않습니다.');
-           }
-         };
-         exports.adminsignup = (req, res) => {
-
-             const { student_id, password, name, email } = req.body;
-             const encryptedPassowrd = bcrypt.hashSync(password, 10);
-             const query = 'INSERT INTO user (student_id, password, name, email, grade, permission, fcm_token) VALUES (?, ?, ?, ?, 99, 3, ?)';
-
-             db.query(query, [student_id, encryptedPassowrd, name, email, fcm_token], (error, results, fields) => {
-               if (error) {
-                 console.error(error);
-                 res.status(500).send('내부 서버 오류');
-               } else {
-                 // 회원가입이 성공한 경우, 응답을 보내거나 다른 처리를 수행
-                 res.status(200).send('회원가입이 완료되었습니다.');
-               }
-             });
-           
-         };
-
-
- exports.userupdate = (req, res) => {
+exports.userupdate = (req, res) => {
   verifyToken(req, res, () => {
     const token = req.decoded// 헤더에서 토큰 추출
     const student_id = token.student_id;
     const password = req.body.password;
-    const encryptedPassowrd = bcrypt.hashSync(password, 10);
+    const salt = crypto.randomBytes(16).toString('hex');
+    const hashedPassword = crypto.pbkdf2Sync(password, salt, 10000, 64, 'sha256').toString('hex');
 
-    const query = 'UPDATE user SET password = ? WHERE student_id = ?';
 
-    db.query(query, [encryptedPassowrd, student_id], (error, results, fields) => {
+    const query = 'UPDATE user SET password = ?, salt = ? WHERE student_id = ?';
+
+    db.query(query, [hashedPassword, salt, student_id], (error, results, fields) => {
       if (error) {
         console.log(error);
         res.status(500).send('서버 내부 오류');
-        } else {
-        res.status(201).json({message: "비밀번호 변경 성공!"});
-        }
+      } else {
+        console.log("비밀번호 변경 성공 : ", student_id);
+        res.status(201).json({ message: "비밀번호 변경 성공!" });
+      }
     });
   })
- }
- exports.usergrade = (req, res) => {
+}
+exports.usergrade = (req, res) => {
   verifyToken(req, res, () => {
     const token = req.decoded// 헤더에서 토큰 추출
     const student_id = token.student_id;
@@ -197,28 +247,28 @@ exports.login = (req, res) => {
       if (error) {
         console.log(error);
         res.status(500).send('서버 내부 오류');
-        } else {
-        res.status(201).json({message: "학년 변경 성공"});
-        }
+      } else {
+        res.status(201).json({ message: "학년 변경 성공" });
+      }
     });
   })
- }
+}
 
- exports.upload = (req, res) => {
+exports.upload = (req, res) => {
   const multer = require('multer');
   const storage = multer.diskStorage({
-    destination: function(req, file, cb) {
+    destination: function (req, file, cb) {
       cb(null, 'routes/image/'); // 파일 저장 경로
     },
-    filename: function(req, file, cb) {
+    filename: function (req, file, cb) {
       cb(null, file.originalname); // 파일 이름 설정
     }
   });
- 
+
   const upload = multer({ storage: storage }).single('image');
 
   try {
-    upload(req, res, function(err) {
+    upload(req, res, function (err) {
       if (err instanceof multer.MulterError) {
         // 파일 업로드 중 에러 발생시
         console.log(err);
@@ -229,6 +279,7 @@ exports.login = (req, res) => {
         res.status(500).send('서버 내부 오류');
       } else {
         // 정상적으로 파일 업로드 완료시
+        console.log("이미지 업로드 성공");
         res.status(201).send('파일 업로드가 완료되었습니다.');
       }
     });
