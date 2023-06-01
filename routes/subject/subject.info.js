@@ -97,24 +97,66 @@ exports.add = (req, res) => {
 
 exports.delete = (req, res) => {
   var data = req.body;
-
+  
   var subject_id = data.subject_id;
   var pro_id = data.pro_id;
-
-  // subject 테이블에서 과목 정보 삭제
-  const deleteSubjectQuery = 'DELETE FROM subject WHERE subject_id = ? AND pro_id = ?';
-  db.query(deleteSubjectQuery, [subject_id, pro_id], function (err, result, fields) {
-    if (!err) {
-      if (result.affectedRows > 0) {
-        res.send('Subject deleted successfully');
-      } else {
-        res.status(404).send('Subject not found');
+  
+  // required_subject 테이블에서 해당 과목 정보 조회
+  const checkRequiredSubjectQuery = 'SELECT * FROM required_subject WHERE subject_id = ? AND pro_id = ?';
+  db.query(checkRequiredSubjectQuery, [subject_id, pro_id], function (err, rows, fields) {
+  if (err) {
+  console.log('err: ' + err);
+  res.status(500).send(err);
+  return;
+  }
+  if (rows.length > 0) {
+    // required_subject 테이블에서 해당 과목 정보가 있는 경우
+    res.status(500).send('Cannot delete subject. It is referenced by other records in the required_subject table.');
+  } else {
+    // 외래 키 제약 조건 해제
+    const disableForeignKeyChecksQuery = 'SET FOREIGN_KEY_CHECKS = 0';
+    db.query(disableForeignKeyChecksQuery, function (err, result, fields) {
+      if (err) {
+        console.log('err: ' + err);
+        res.status(500).send(err);
+        return;
       }
-    } else {
-      console.log('err: ' + err);
-      res.send(err);
-    }
-  });
+  
+      // 과목 정보 삭제
+      const deleteSubjectQuery = 'DELETE FROM subject WHERE subject_id = ? AND pro_id = ?';
+      db.query(deleteSubjectQuery, [subject_id, pro_id], function (err, result, fields) {
+        if (!err) {
+          if (result.affectedRows > 0) {
+            // 외래 키 제약 조건 복원
+            const enableForeignKeyChecksQuery = 'SET FOREIGN_KEY_CHECKS = 1';
+            db.query(enableForeignKeyChecksQuery, function (err, result, fields) {
+              if (err) {
+                console.log('err: ' + err);
+                res.status(500).send(err);
+                return;
+              }
+              res.send('Subject deleted successfully');
+            });
+          } else {
+            // 외래 키 제약 조건 복원
+            const enableForeignKeyChecksQuery = 'SET FOREIGN_KEY_CHECKS = 1';
+            db.query(enableForeignKeyChecksQuery, function (err, result, fields) {
+              if (err) {
+                console.log('err: ' + err);
+                res.status(500).send(err);
+                return;
+              }
+              res.status(404).send('Subject not found');
+            });
+          }
+        } else {
+          console.log('err: ' + err);
+          res.status(500).send(err);
+        }
+      });
+    });
+  }
+});
 };
 
 exports.modify = (req, res) => {
