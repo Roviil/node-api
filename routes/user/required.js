@@ -127,7 +127,7 @@ exports.delete = (req, res) => {
               if (deleteResult.affectedRows > 0) {
                 if (processedObjects === totalObjects) {
                   if (failedDeletions.length > 0) {
-                    res.send('Some rows deleted from required_subject table, but not all. Failed deletions: ' + JSON.stringify(failedDeletions));
+                    res.status(500).send('Some rows deleted from required_subject table, but not all. Failed deletions: ' + JSON.stringify(failedDeletions));
                   } else {
                     res.send('All rows deleted from required_subject table');
                   }
@@ -136,7 +136,7 @@ exports.delete = (req, res) => {
                 failedDeletions.push(info); // 조회 실패한 항목 추가
                 if (processedObjects === totalObjects) {
                   if (failedDeletions.length > 0) {
-                    res.send('No matching rows found in required_subject table. Failed deletions: ' + JSON.stringify(failedDeletions));
+                    res.status(500).send('No matching rows found in required_subject table. Failed deletions: ' + JSON.stringify(failedDeletions));
                   } else {
                     res.send('All rows deleted from required_subject table');
                   }
@@ -144,7 +144,7 @@ exports.delete = (req, res) => {
               }
             } else {
               console.log('err:' + err);
-              res.send(err);
+              res.status(500).send(err);
             }
           });
         } else {
@@ -161,7 +161,7 @@ exports.delete = (req, res) => {
         }
       } else {
         console.log('err: ' + err);
-        res.send(err);
+        res.status(500).send(err);
       }
     });
   });
