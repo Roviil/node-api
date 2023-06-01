@@ -121,11 +121,18 @@ exports.write = (req, res) => {
                   }
                   const fcmTokens = results.map((row) => row.fcm_token);
                   sendPushNotification(fcmTokens, message);
+                  // 공지 등록 시, 알림을 푸시했음을 저장
+                  db.query('UPDATE user SET is_notified = 1', (error, results) => {
+                    if (error) {
+                      console.error("알림 저장 실패: ", error);
+                      return;
+                    }
+                  });
                 });
-              } else if(4 < board_id && board_id < 9) {
+              } else if (4 < board_id && board_id < 9) {
                 // 특정 grade 사용자에게 알림 전송
                 const grade = board_id - 4;
-                const message = grade+"학년 공지가 등록되었습니다.";
+                const message = grade + "학년 공지가 등록되었습니다.";
                 db.query('SELECT fcm_token FROM user WHERE grade = ?', [grade], (error, results) => {
                   if (error) {
                     console.error("FCM 토큰 가져오기 실패: ", error);
@@ -133,6 +140,13 @@ exports.write = (req, res) => {
                   }
                   const fcmTokens = results.map((row) => row.fcm_token);
                   sendPushNotification(fcmTokens, message);
+                  // // 공지 등록 시, 알림을 푸시했음을 저장
+                  db.query('UPDATE user SET is_notified = 1 WHERE grade = ?', [grade], (error, results) => {
+                    if (error) {
+                      console.error("알림 저장 실패: ", error);
+                      return;
+                    }
+                  });
                 });
               }
               res.status(201).json({ message: "게시물이 성공적으로 작성되었습니다." });
@@ -145,6 +159,51 @@ exports.write = (req, res) => {
       res.status(401).json({ message: "토큰이 유효하지 않습니다." });
     }
   });
+};
+
+exports.getNotificationStatus = (req, res) => {
+  verifyToken(req, res, () => {
+    const token = req.decoded; 
+    const query = 'SELECT is_notified FROM user WHERE student_id = ?';
+    try {
+      const student_id = token.student_id;
+
+      db.query(query, student_id, (error, results) => {
+        if (error) {
+          console.error("알림 상태 가져오기 실패: ", error);
+          res.status(500).json({ message: "서버 내부 오류" });
+        } else {
+          res.status(200).json(results);
+        }
+      });
+    } catch (err) {
+      console.error("토큰 검증 실패: ", err);
+      res.status(401).json({ message: "토큰이 유효하지 않습니다." });
+    }
+  });
+};
+
+
+exports.updateNotificationStatus = (req, res) => {
+  verifyToken(req, res, () => {
+  const token = req.decoded; // 토큰 추출
+  const query = 'UPDATE user SET is_notified = 0 WHERE student_id = ?';
+  try {
+    const student_id = token.student_id; // 사용자 ID 추출
+
+    db.query(query, student_id, (error, results) => {
+      if (error) {
+        console.error("알림 상태 업데이트 실패: ", error);
+        res.status(500).json({ message: "서버 내부 오류" });
+      } else {
+        res.status(200).json({ message: "알림 상태가 업데이트되었습니다." });
+      }
+    });
+  } catch (err) {
+    console.error("토큰 검증 실패: ", err);
+    res.status(401).json({ message: "토큰이 유효하지 않습니다." });
+  }
+});
 };
 
 
