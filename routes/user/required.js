@@ -104,6 +104,10 @@ exports.add = (req, res) => {
 
 exports.delete = (req, res) => {
   var data = req.body; // 전달된 데이터 배열
+  if (!Array.isArray(data)) {
+    return res.status(400).send('Data must be an array');
+  }
+
   var totalObjects = data.length; // 전체 객체 수
   var processedObjects = 0; // 처리된 객체 수
   var failedDeletions = []; // 조회 실패한 항목 배열
@@ -113,7 +117,6 @@ exports.delete = (req, res) => {
     var student_id = info.student_id;
     var subject_id = info.subject_id;
     var pro_id = info.pro_id;
-
     const requiredSqlQuery = 'SELECT * FROM required_subject WHERE student_id = ? AND subject_id = ? AND pro_id = ?';
 
     db.query(requiredSqlQuery, [student_id, subject_id, pro_id], function(err, rows, fields) {
@@ -127,7 +130,7 @@ exports.delete = (req, res) => {
               if (deleteResult.affectedRows > 0) {
                 if (processedObjects === totalObjects) {
                   if (failedDeletions.length > 0) {
-                    res.status(500).send('Some rows deleted from required_subject table, but not all. Failed deletions: ' + JSON.stringify(failedDeletions));
+                    res.send.send('Some rows deleted from required_subject table, but not all. Failed deletions: ' + JSON.stringify(failedDeletions));
                   } else {
                     res.send('All rows deleted from required_subject table');
                   }
