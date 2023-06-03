@@ -23,7 +23,6 @@ const getDate = (callback) => {
   });
 };
 
-
 exports.posts = (req, res) => {
   db.query('SELECT * FROM post', function (err, rows, fields) {
     if (!err) {
@@ -41,6 +40,18 @@ exports.postsget = (req, res) => {
   const query = 'SELECT * FROM post WHERE board_id = ? AND available = 1 ORDER BY post_id DESC;';
 
   db.query(query, board_id, (error, results, fields) => {
+    if (error) {
+      console.log(error);
+      res.status(500).send('Internal Server Error');
+    } else {
+      res.status(200).json(results);
+    }
+  });
+}
+
+exports.getReport = (req, res) => {
+  const query = 'SELECT * FROM post WHERE report >= 5 AND available = 1 ORDER BY post_id DESC;';
+  db.query(query, (error, results) => {
     if (error) {
       console.log(error);
       res.status(500).send('Internal Server Error');
@@ -110,11 +121,18 @@ exports.write = (req, res) => {
                   }
                   const fcmTokens = results.map((row) => row.fcm_token);
                   sendPushNotification(fcmTokens, message);
+                  // 공지 등록 시, 알림을 푸시했음을 저장
+                  db.query('UPDATE user SET is_notified = 1', (error, results) => {
+                    if (error) {
+                      console.error("알림 저장 실패: ", error);
+                      return;
+                    }
+                  });
                 });
-              } else if(4 < board_id && board_id < 9) {
+              } else if (4 < board_id && board_id < 9) {
                 // 특정 grade 사용자에게 알림 전송
                 const grade = board_id - 4;
-                const message = grade+"학년 공지가 등록되었습니다.";
+                const message = grade + "학년 공지가 등록되었습니다.";
                 db.query('SELECT fcm_token FROM user WHERE grade = ?', [grade], (error, results) => {
                   if (error) {
                     console.error("FCM 토큰 가져오기 실패: ", error);
@@ -122,6 +140,13 @@ exports.write = (req, res) => {
                   }
                   const fcmTokens = results.map((row) => row.fcm_token);
                   sendPushNotification(fcmTokens, message);
+                  // // 공지 등록 시, 알림을 푸시했음을 저장
+                  db.query('UPDATE user SET is_notified = 1 WHERE grade = ?', [grade], (error, results) => {
+                    if (error) {
+                      console.error("알림 저장 실패: ", error);
+                      return;
+                    }
+                  });
                 });
               }
               res.status(201).json({ message: "게시물이 성공적으로 작성되었습니다." });
@@ -134,6 +159,51 @@ exports.write = (req, res) => {
       res.status(401).json({ message: "토큰이 유효하지 않습니다." });
     }
   });
+};
+
+exports.getNotificationStatus = (req, res) => {
+  verifyToken(req, res, () => {
+    const token = req.decoded; 
+    const query = 'SELECT is_notified FROM user WHERE student_id = ?';
+    try {
+      const student_id = token.student_id;
+
+      db.query(query, student_id, (error, results) => {
+        if (error) {
+          console.error("알림 상태 가져오기 실패: ", error);
+          res.status(500).json({ message: "서버 내부 오류" });
+        } else {
+          res.status(200).json(results);
+        }
+      });
+    } catch (err) {
+      console.error("토큰 검증 실패: ", err);
+      res.status(401).json({ message: "토큰이 유효하지 않습니다." });
+    }
+  });
+};
+
+
+exports.updateNotificationStatus = (req, res) => {
+  verifyToken(req, res, () => {
+  const token = req.decoded; // 토큰 추출
+  const query = 'UPDATE user SET is_notified = 0 WHERE student_id = ?';
+  try {
+    const student_id = token.student_id; // 사용자 ID 추출
+
+    db.query(query, student_id, (error, results) => {
+      if (error) {
+        console.error("알림 상태 업데이트 실패: ", error);
+        res.status(500).json({ message: "서버 내부 오류" });
+      } else {
+        res.status(200).json({ message: "알림 상태가 업데이트되었습니다." });
+      }
+    });
+  } catch (err) {
+    console.error("토큰 검증 실패: ", err);
+    res.status(401).json({ message: "토큰이 유효하지 않습니다." });
+  }
+});
 };
 
 
@@ -350,6 +420,44 @@ exports.updatePost = (req, res) => {
       }
     });
   });
+};
+
+exports.reportPost = (req, res) => {
+    const post_id = req.params.post_id;
+    const selectSql = "SELECT report FROM post WHERE post_id = ?";
+    const selectValues = [post_id];
+    db.query(selectSql, selectValues, (selectError, selectResult) => {
+      if (selectError) {
+        console.error(selectError);
+        res.status(500).json({ error: '서버 오류' });
+      } else if (selectResult.length === 0) { // 신고 횟수가 null일 때
+        res.status(404).json({error: '글을 찾을 수 없습니다.'});
+        
+      } else { // 신고 횟수가 존재할 때, 1씩 더함.
+        const updateSql = "UPDATE post SET report = ? WHERE post_id = ?";
+        const report_cnt = selectResult[0].report + 1;
+        const updateValues = [report_cnt, post_id];
+        db.query(updateSql, updateValues, (updateError, updateResult) => {
+          if (updateError) {
+            console.error(updateError);
+            res.status(500).json({ error: '서버 오류' });
+          } else {
+            if(report_cnt === 5){
+              const c_message = "신고된 게시글이 존재합니다.\n";
+                db.query('SELECT fcm_token FROM user WHERE permission = 2', (error, results) => {
+                  if (error) {
+                    console.error("FCM 토큰 가져오기 실패: ", error);
+                    return;
+                  }
+                  const fcmTokens = results.map((row) => row.fcm_token);
+                  sendPushNotification(fcmTokens, c_message);
+                });
+            }
+            res.status(200).json({ message: '글 신고 완료' });
+          }
+        });
+      }
+    });
 };
 
 exports.deletePost = (req, res) => {
