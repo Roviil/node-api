@@ -541,16 +541,17 @@ exports.deletePost = (req, res) => {
                   res.status(404).json({ message: "해당 게시물을 찾을 수 없습니다." });
                 } else {
                   console.log("게시물 삭제 성공!  " , postId , "번 게시글  " ,student_id,"이 삭제완료","\n작성자:",postuserid," 항목명:",postItem, " 승인여부:",postPass," 승인점수:",prevAcceptedScore);
-                  if(category != "캡스톤디자인"){
+                  if(category == "캡스톤디자인" || postItem == "캡스톤디자인"){
+                    res.status(200).json({ message: "게시물이 성공적으로 삭제되었습니다." });
+                  }
+                  else{
                   if (postPass === "승인") {
                     // 승인된 게시물인 경우 graduation_score 업데이트
                     updateGraduationScore(postuserid, category, prevAcceptedScore, res);
-                    res.status(200).json({ message: "게시물이 성공적으로 삭제되었습니다." });
+                    
                   } else {
                     res.status(200).json({ message: "게시물이 성공적으로 삭제되었습니다." });
                   }
-                }else{
-                  res.status(200).json({ message: "게시물이 성공적으로 삭제되었습니다." });
                 }
                 }
               });
