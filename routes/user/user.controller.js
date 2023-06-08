@@ -148,8 +148,8 @@ exports.sendVerificationPassword = (req, res) => {
     } else {
       const salt = crypto.randomBytes(16).toString('hex');
       const hashedPassword = crypto.pbkdf2Sync(verificationCode, salt, 10000, 64, 'sha256').toString('hex');
-      const query = 'UPDATE user SET password=?, salt=? WHERE student_id=?';
-      db.query(query, [hashedPassword, salt, student_id], (error, results, fields) => {
+      const query = 'UPDATE user SET password=?, salt=?, isTempPassword=? WHERE student_id=?';
+      db.query(query, [hashedPassword, salt, 1, student_id], (error, results, fields) => {
         if (error) {
           console.error(error);
           res.status(500).send('내부 서버 오류');
@@ -222,7 +222,7 @@ exports.userupdate = (req, res) => {
     const hashedPassword = crypto.pbkdf2Sync(password, salt, 10000, 64, 'sha256').toString('hex');
 
 
-    const query = 'UPDATE user SET password = ?, salt = ? WHERE student_id = ?';
+    const query = 'UPDATE user SET password = ?, salt = ?, isTempPassword = 0 WHERE student_id = ?';
 
     db.query(query, [hashedPassword, salt, student_id], (error, results, fields) => {
       if (error) {
