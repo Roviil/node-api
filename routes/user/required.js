@@ -130,7 +130,7 @@ exports.delete = (req, res) => {
               if (deleteResult.affectedRows > 0) {
                 if (processedObjects === totalObjects) {
                   if (failedDeletions.length > 0) {
-                    res.send.send('Some rows deleted from required_subject table, but not all. Failed deletions: ' + JSON.stringify(failedDeletions));
+                    res.send('Some rows deleted from required_subject table, but not all. Failed deletions: ' + JSON.stringify(failedDeletions));
                   } else {
                     res.send('All rows deleted from required_subject table');
                   }
