@@ -110,8 +110,11 @@ exports.sendVerificationEmail = (req, res) => {
   const mailOptions = {
     from: process.env.SMTP_EMAIL,
     to: email,
-    subject: '회원가입 이메일 인증',
-    text: `회원가입을 위한 인증번호는 ${verificationCode}입니다.`,
+    subject: '[세미콜론] 회원가입 이메일 인증',
+    text: `세미콜론 회원가입을 위한 인증번호입니다. \n
+    ${verificationCode}  \n
+    이 이메일을 요청하지 않으셨다면 무시하셔도 됩니다.
+    `,
   };
   transporter.sendMail(mailOptions, (error, info) => {
     if (error) {
@@ -127,6 +130,18 @@ exports.sendVerificationEmail = (req, res) => {
 exports.sendVerificationPassword = (req, res) => {
   const { email } = req.body;
   const student_id = email.split('@')[0];
+
+  const query = 'SELECT * FROM user WHERE student_id = ?';
+  db.query(query, [student_id], (error, results, fields) => {
+    if (error) {
+      console.error(error);
+      res.status(500).send('내부 서버 오류');
+    } else {
+      if (results.length === 0) {
+        // db에 해당 student_id가 없는 경우에는 메일 전송을 하지 않고 에러 응답
+        res.status(400).send('유효하지 않은 이메일 주소입니다.');
+      } else {
+
   const verificationCode = randomstring.generate(6); // 6자리의 인증번호 생성
   const transporter = nodemailer.createTransport({
     service: 'Gmail',
@@ -138,8 +153,11 @@ exports.sendVerificationPassword = (req, res) => {
   const mailOptions = {
     from: process.env.SMTP_EMAIL,
     to: email,
-    subject: '임시비밀번호 전송',
-    text: `로그인을 위한 임시비밀번호는 ${verificationCode}입니다.`,
+    subject: '[세미콜론] 임시비밀번호 발급',
+    text: `세미콜론 로그인을 위한 임시비밀번호입니다.\n
+    ${verificationCode}\n
+    이 이메일을 요청하지 않으셨다면 무시하셔도 됩니다.
+    `,
   };
   transporter.sendMail(mailOptions, (error, info) => {
     if (error) {
@@ -148,17 +166,19 @@ exports.sendVerificationPassword = (req, res) => {
     } else {
       const salt = crypto.randomBytes(16).toString('hex');
       const hashedPassword = crypto.pbkdf2Sync(verificationCode, salt, 10000, 64, 'sha256').toString('hex');
-      const query = 'UPDATE user SET password=?, salt=? WHERE student_id=?';
-      db.query(query, [hashedPassword, salt, student_id], (error, results, fields) => {
+      const query = 'UPDATE user SET password=?, salt=?, isTempPassword=? WHERE student_id=?';
+      db.query(query, [hashedPassword, salt, 1, student_id], (error, results, fields) => {
         if (error) {
           console.error(error);
           res.status(500).send('내부 서버 오류');
         } else {
           console.log("비밀번호 초기화 메일 전송 성공 : ", email)
           res.status(200).send('비밀번호 초기화가 완료되었습니다.');
-        }
-
-      });
+              }
+            });
+          }
+        });
+     }
     }
   });
 };
@@ -222,7 +242,7 @@ exports.userupdate = (req, res) => {
     const hashedPassword = crypto.pbkdf2Sync(password, salt, 10000, 64, 'sha256').toString('hex');
 
 
-    const query = 'UPDATE user SET password = ?, salt = ? WHERE student_id = ?';
+    const query = 'UPDATE user SET password = ?, salt = ?, isTempPassword = 0 WHERE student_id = ?';
 
     db.query(query, [hashedPassword, salt, student_id], (error, results, fields) => {
       if (error) {
