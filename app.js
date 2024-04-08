@@ -11,7 +11,7 @@ const cors = require("cors");
 
 var app = express();
 
-// view engine setup
+// view engine setup test
 app.use(cors());
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'jade');
